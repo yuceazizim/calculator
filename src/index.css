@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Welding Consumable Calculator (WCC)
+   Windows 11 Pro Fluent UI Custom Utility Styles
+   ========================================================================== */
+
+@layer base {
+  /* Windows 11 Ultra-Smooth Text Rendering */
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Windows 11 Native Thin Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(140, 140, 140, 0.35);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 100, 100, 0.6);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+}
+
+@layer components {
+  /* Fluent Acrylic Glass Card Surface */
+  .fluent-card {
+    @apply bg-white/80 dark:bg-[#2b2b2b]/80 backdrop-blur-acrylic border border-black/[0.08] dark:border-white/[0.08] shadow-fluent-card rounded-fluent-lg transition-all duration-200;
+  }
+
+  /* Fluent Interactive Card with Hover Elevation */
+  .fluent-card-interactive {
+    @apply fluent-card hover:shadow-fluent-flyout hover:border-fluent-accent/40 cursor-pointer;
+  }
+
+  /* Fluent Primary Action Button */
+  .fluent-btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-fluent-accent hover:bg-fluent-accent-hover active:bg-fluent-accent-active active:scale-[0.98] rounded-fluent shadow-sm transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  /* Fluent Secondary / Standard Button */
+  .fluent-btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white/70 dark:bg-[#333333]/70 hover:bg-white dark:hover:bg-[#3d3d3d] active:scale-[0.98] border border-black/[0.1] dark:border-white/[0.1] rounded-fluent shadow-sm transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  /* Fluent Input Field (Windows 11 Signature Line & Border) */
+  .fluent-input {
+    @apply w-full px-3 py-2 text-sm text-slate-800 dark:text-slate-100 bg-white/80 dark:bg-[#202020]/80 border border-black/[0.15] dark:border-white/[0.15] rounded-fluent shadow-inner focus:outline-none focus:ring-2 focus:ring-fluent-accent/30 focus:border-fluent-accent transition-all duration-150 placeholder:text-slate-400 dark:placeholder:text-slate-500;
+  }
+
+  /* Fluent Dropdown Select */
+  .fluent-select {
+    @apply fluent-input cursor-pointer pr-8;
+  }
+
+  /* Fluent Header / Section Title */
+  .fluent-title {
+    @apply text-lg font-semibold tracking-tight text-slate-900 dark:text-white;
+  }
+
+  /* Fluent Subtitle / Caption */
+  .fluent-caption {
+    @apply text-xs font-normal text-slate-500 dark:text-slate-400;
+  }
+
+  /* Fluent Badge / Tag */
+  .fluent-badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-fluent-accent/10 text-fluent-accent dark:bg-fluent-accent-dark/15 dark:text-fluent-accent-dark border border-fluent-accent/20;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
