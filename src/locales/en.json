@@ -16,8 +16,18 @@
     "theme": "Theme",
     "theme_dark": "Dark Mode",
     "theme_light": "Light Mode",
+    "settings": "Settings",
     "standards_info": "Standards & Specifications",
     "standards_info_desc": "ASME Sec. IX, B31.3, AWS & EN"
+  },
+  "standards_modal": {
+    "intro": "The Welding Consumable Calculator (WCC) calculates weld metal volume, consumable weights, arc-on times, and shielding/purge gas consumption in strict conformance with certified international welding engineering standards:",
+    "asme_ix_desc": "Qualification Standard for Welding & Brazing",
+    "asme_b313_desc": "Process Piping Code (Joint Details, Socket Cx & PWHT)",
+    "asme_b36_desc": "Standard Welded & Seamless Wrought Steel Pipe",
+    "aws_desc": "Structural Welding & Consumable Specifications",
+    "iso_15614_desc": "Welding Procedure Tests (k-factor Heat Input)",
+    "governing_spec": "Governing Spec:"
   },
   "joint": {
     "title": "Joint Configuration & Geometry",

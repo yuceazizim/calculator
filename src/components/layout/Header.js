@@ -1,25 +1,19 @@
 /**
  * Welding Consumable Calculator (WCC)
  * Layout Component: Header (Standalone Calculator Edition)
- * Windows 11 Pro Fluent UI Navigation Bar & Acrylic Settings Flyout
- * Features: Calculator, Standards Catalog & PQR Benchmarks Tabs + Unified Settings Flyout (Language, Theme, Standards Modal)
+ * Windows 11 Pro Fluent UI Navigation Bar & Minimalist Settings Flyout
  * Standards: ASME Sec. IX • ASME B31.3 • AWS A5.X • EN ISO 15614-1
  * Pure JavaScript (.js only)
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useTranslation } from '../../i18n.js';
+import { useTranslation, AVAILABLE_LANGUAGES } from '../../i18n.js';
 import {
   Flame,
   Calculator,
   Database,
   FileCheck2,
-  Globe,
-  Moon,
-  Sun,
-  ShieldCheck,
   Settings,
-  ChevronRight,
   X,
 } from 'lucide-react';
 
@@ -34,9 +28,7 @@ export default function Header({
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const settingsMenuRef = useRef(null);
 
-  const isTr = language === 'tr';
-
-  // Close settings flyout on outside click / touch or Escape key
+  // Close flyout on outside click/touch or Escape
   useEffect(() => {
     if (!isSettingsOpen && !isInfoModalOpen) return;
 
@@ -69,7 +61,7 @@ export default function Header({
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-[#202020]/80 backdrop-blur-acrylic border-b border-black/[0.08] dark:border-white/[0.08] transition-colors duration-200">
+      <header className="sticky top-0 z-40 w-full bg-white/85 dark:bg-[#202020]/85 backdrop-blur-acrylic border-b border-black/[0.08] dark:border-white/[0.08] transition-colors duration-200">
         <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2">
           
           {/* 1. Brand Logo & Title */}
@@ -96,163 +88,112 @@ export default function Header({
             </div>
           </div>
 
-          {/* 2. Top Right: Windows 11 Pro Fluent Settings Flyout Trigger */}
+          {/* 2. Top Right: Clean Windows 11 Settings Trigger & MenuFlyout */}
           <div className="relative flex-shrink-0" ref={settingsMenuRef}>
             <button
               type="button"
               onClick={() => setIsSettingsOpen((prev) => !prev)}
               aria-expanded={isSettingsOpen}
               aria-haspopup="menu"
-              aria-label={isTr ? 'Ayarlar' : 'Settings'}
-              className={`h-9 px-2.5 sm:px-3 rounded-fluent border flex items-center gap-2 text-xs font-semibold transition-all duration-150 active:scale-[0.97] ${
+              aria-label={t('nav.settings', 'Settings')}
+              title={t('nav.settings', 'Settings')}
+              className={`w-9 h-9 rounded-fluent flex items-center justify-center transition-colors duration-150 ${
                 isSettingsOpen
-                  ? 'bg-fluent-accent/10 dark:bg-fluent-accent-dark/15 border-fluent-accent/40 text-fluent-accent dark:text-fluent-accent-dark shadow-sm'
-                  : 'bg-white/75 dark:bg-[#2d2d2d]/75 hover:bg-white dark:hover:bg-[#363636] border-black/[0.08] dark:border-white/[0.1] text-slate-700 dark:text-slate-200 shadow-sm'
+                  ? 'bg-black/[0.06] dark:bg-white/[0.1] text-fluent-accent dark:text-fluent-accent-dark'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.07]'
               }`}
             >
-              <Settings
-                className={`w-4 h-4 transition-transform duration-300 ${
-                  isSettingsOpen ? 'rotate-45 text-fluent-accent dark:text-fluent-accent-dark' : 'text-slate-600 dark:text-slate-300'
-                }`}
-              />
-              <span className="hidden sm:inline">
-                {isTr ? 'Ayarlar' : 'Settings'}
-              </span>
-              <span className="sm:hidden text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/[0.05] dark:bg-white/[0.08] text-slate-600 dark:text-slate-300">
-                {language.toUpperCase()}
-              </span>
+              <Settings className="w-[18px] h-[18px]" />
             </button>
 
-            {/* Windows 11 Pro Acrylic Settings Flyout Panel */}
+            {/* Minimalist Windows 11 Pro MenuFlyout */}
             {isSettingsOpen && (
               <div
                 role="menu"
                 className="
-                  absolute right-0 top-full mt-2
-                  w-[min(calc(100vw-1.25rem),19rem)]
+                  absolute right-0 top-full mt-1.5
+                  w-[min(calc(100vw-1.5rem),16.5rem)]
                   rounded-fluent-lg
-                  bg-white/95 dark:bg-[#272727]/95
-                  backdrop-blur-2xl
-                  border border-black/[0.1] dark:border-white/[0.12]
-                  shadow-fluent-modal
-                  p-2.5 space-y-2
+                  bg-white dark:bg-[#2c2c2c]
+                  border border-black/[0.09] dark:border-white/[0.1]
+                  shadow-fluent-flyout
+                  p-1.5
                   z-50
-                  origin-top-right
                 "
               >
-                {/* Flyout Header */}
-                <div className="px-2 pt-1 pb-2 border-b border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Settings className="w-3.5 h-3.5 text-fluent-accent dark:text-fluent-accent-dark" />
-                    <span className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">
-                      {isTr ? 'Uygulama Ayarları' : 'System Preferences'}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-fluent-accent/10 text-fluent-accent dark:text-fluent-accent-dark">
-                    {t('app.version', 'v1.0.0 Pro')}
-                  </span>
-                </div>
-
-                {/* Section 1: Language Switcher (Segmented Fluent Pill) */}
-                <div className="p-2 rounded-fluent bg-black/[0.025] dark:bg-white/[0.03] border border-black/[0.05] dark:border-white/[0.06] space-y-1.5">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
-                    <Globe className="w-3.5 h-3.5 text-fluent-accent dark:text-fluent-accent-dark flex-shrink-0" />
-                    <span>{t('nav.language', 'Language')}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 p-1 rounded-fluent bg-black/[0.04] dark:bg-black/30 border border-black/[0.05] dark:border-white/[0.06]">
-                    <button
-                      type="button"
-                      onClick={() => setLanguage('en')}
-                      className={`py-1.5 px-2 rounded-[6px] text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 ${
-                        language === 'en'
-                          ? 'bg-white dark:bg-[#3a3a3a] text-fluent-accent dark:text-fluent-accent-dark shadow-sm border border-black/[0.06] dark:border-white/[0.08]'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <span className="text-[10px] font-black opacity-75">EN</span>
-                      <span>English</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setLanguage('tr')}
-                      className={`py-1.5 px-2 rounded-[6px] text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 ${
-                        language === 'tr'
-                          ? 'bg-white dark:bg-[#3a3a3a] text-fluent-accent dark:text-fluent-accent-dark shadow-sm border border-black/[0.06] dark:border-white/[0.08]'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <span className="text-[10px] font-black opacity-75">TR</span>
-                      <span>Türkçe</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Section 2: Theme Toggle (Light / Dark Segmented Fluent Pill) */}
-                <div className="p-2 rounded-fluent bg-black/[0.025] dark:bg-white/[0.03] border border-black/[0.05] dark:border-white/[0.06] space-y-1.5">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
-                    {darkMode ? (
-                      <Moon className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                    ) : (
-                      <Sun className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                    )}
-                    <span>{t('nav.theme', 'Theme')}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 p-1 rounded-fluent bg-black/[0.04] dark:bg-black/30 border border-black/[0.05] dark:border-white/[0.06]">
-                    <button
-                      type="button"
-                      onClick={() => setDarkMode(false)}
-                      className={`py-1.5 px-2 rounded-[6px] text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 ${
-                        !darkMode
-                          ? 'bg-white text-fluent-accent shadow-sm border border-black/[0.06]'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Sun className="w-3.5 h-3.5 text-amber-500" />
-                      <span>{isTr ? 'Açık' : 'Light'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setDarkMode(true)}
-                      className={`py-1.5 px-2 rounded-[6px] text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 ${
-                        darkMode
-                          ? 'bg-[#3a3a3a] text-fluent-accent-dark shadow-sm border border-white/[0.08]'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      <Moon className="w-3.5 h-3.5 text-amber-400" />
-                      <span>{isTr ? 'Koyu' : 'Dark'}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Section 3: Standards & Specifications Action Row */}
-                <div className="pt-1 border-t border-black/[0.06] dark:border-white/[0.08]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSettingsOpen(false);
-                      setIsInfoModalOpen(true);
-                    }}
-                    className="w-full p-2.5 rounded-fluent hover:bg-black/[0.04] dark:hover:bg-white/[0.06] active:scale-[0.99] transition-all flex items-center justify-between gap-2 text-left group"
+                {/* Language Select (Scales cleanly to 40+ languages) */}
+                <div className="px-2.5 py-2 space-y-1.5">
+                  <label
+                    htmlFor="wcc-language-select"
+                    className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400"
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-fluent bg-fluent-accent/10 dark:bg-fluent-accent-dark/15 flex items-center justify-center text-fluent-accent dark:text-fluent-accent-dark flex-shrink-0">
-                        <ShieldCheck className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="block text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                          {t('nav.standards_info', 'Standards & Specifications')}
-                        </span>
-                        <span className="block text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                          {t('nav.standards_info_desc', 'ASME Sec. IX, B31.3, AWS & EN')}
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-fluent-accent dark:group-hover:text-fluent-accent-dark group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-                  </button>
+                    {t('nav.language', 'Language')}
+                  </label>
+                  <select
+                    id="wcc-language-select"
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="fluent-select py-1.5 text-xs font-medium bg-white dark:bg-[#202020]"
+                  >
+                    {AVAILABLE_LANGUAGES.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
+                {/* Windows 11 Native-Style Dark Mode Toggle Switch */}
+                <button
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={darkMode}
+                  onClick={() => setDarkMode(!darkMode)}
+                  className="w-full px-2.5 py-2.5 rounded-fluent hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-colors flex items-center justify-between gap-3 text-left"
+                >
+                  <span className="text-xs font-medium text-slate-800 dark:text-slate-100">
+                    {t('nav.theme_dark', 'Dark Mode')}
+                  </span>
+
+                  {/* WinUI 3 ToggleSwitch */}
+                  <span
+                    aria-hidden="true"
+                    className={`relative inline-flex h-5 w-10 flex-shrink-0 items-center rounded-full border transition-colors duration-200 ${
+                      darkMode
+                        ? 'bg-fluent-accent border-fluent-accent'
+                        : 'bg-transparent border-slate-500/70 dark:border-slate-400/60'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-3 w-3 transform rounded-full transition-transform duration-200 ${
+                        darkMode
+                          ? 'translate-x-[22px] bg-white'
+                          : 'translate-x-[3px] bg-slate-600 dark:bg-slate-300'
+                      }`}
+                    />
+                  </span>
+                </button>
+
+                {/* Subtle Divider */}
+                <div className="my-1 border-t border-black/[0.06] dark:border-white/[0.08]" />
+
+                {/* Standards & Specifications Row */}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsSettingsOpen(false);
+                    setIsInfoModalOpen(true);
+                  }}
+                  className="w-full px-2.5 py-2 rounded-fluent hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-colors text-left"
+                >
+                  <span className="block text-xs font-medium text-slate-800 dark:text-slate-100">
+                    {t('nav.standards_info', 'Standards & Specifications')}
+                  </span>
+                  <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {t('nav.standards_info_desc', 'ASME Sec. IX, B31.3, AWS & EN')}
+                  </span>
+                </button>
               </div>
             )}
           </div>
@@ -309,17 +250,12 @@ export default function Header({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg max-h-[88vh] overflow-y-auto rounded-fluent-lg bg-white/95 dark:bg-[#282828]/95 backdrop-blur-2xl border border-black/[0.1] dark:border-white/[0.12] shadow-fluent-modal p-5 sm:p-6 text-slate-800 dark:text-slate-100 space-y-4"
+            className="w-full max-w-lg max-h-[88vh] overflow-y-auto rounded-fluent-lg bg-white dark:bg-[#2c2c2c] border border-black/[0.1] dark:border-white/[0.12] shadow-fluent-modal p-5 sm:p-6 text-slate-800 dark:text-slate-100 space-y-4"
           >
             <div className="flex items-center justify-between pb-3 border-b border-black/[0.08] dark:border-white/[0.08]">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-fluent bg-fluent-accent/10 dark:bg-fluent-accent-dark/15 flex items-center justify-center text-fluent-accent dark:text-fluent-accent-dark">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  {t('nav.standards_info', 'Standards & Specifications')}
-                </h3>
-              </div>
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                {t('nav.standards_info', 'Standards & Specifications')}
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsInfoModalOpen(false)}
@@ -332,43 +268,23 @@ export default function Header({
 
             <div className="space-y-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
               <p>
-                {isTr ? (
-                  <>
-                    <strong>Kaynak Sarf Malzeme Hesaplayıcı (WCC)</strong>; kaynak metali hacmini, elektrot/tel ağırlık ve adetlerini, ark yanma sürelerini ve koruyucu/kök gazı tüketimini sertifikalı uluslararası kaynak mühendisliği standartlarına tam uyumlu olarak hesaplar:
-                  </>
-                ) : (
-                  <>
-                    The <strong>Welding Consumable Calculator (WCC)</strong> calculates weld metal volume, consumable weights, arc-on times, and shielding/purge gas consumption in strict conformance with certified international welding engineering standards:
-                  </>
+                {t(
+                  'standards_modal.intro',
+                  'The Welding Consumable Calculator (WCC) calculates weld metal volume, consumable weights, arc-on times, and shielding/purge gas consumption in strict conformance with certified international welding engineering standards:'
                 )}
               </p>
 
               <div className="p-3 rounded-fluent bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.08] space-y-1.5 font-mono text-[11px]">
-                <p>
-                  • <strong>ASME Section IX:</strong>{' '}
-                  {isTr ? 'Kaynak ve Lehimleme Prosedürü Nitelendirme Standardı' : 'Qualification Standard for Welding & Brazing'}
-                </p>
-                <p>
-                  • <strong>ASME B31.3:</strong>{' '}
-                  {isTr ? 'Proses Borulama Kodu (Ağız Detayı, Soket Cx & PWHT)' : 'Process Piping Code (Joint Details, Socket Cx & PWHT)'}
-                </p>
-                <p>
-                  • <strong>ASME B36.10M / B36.19M:</strong>{' '}
-                  {isTr ? 'Standart Dikişli ve Dikişsiz Çelik Boru Ölçüleri' : 'Standard Welded & Seamless Wrought Steel Pipe'}
-                </p>
-                <p>
-                  • <strong>AWS D1.1 / AWS A5.X:</strong>{' '}
-                  {isTr ? 'Yapısal Çelik Kaynağı ve Sarf Malzeme Sınıflandırması' : 'Structural Welding & Consumable Specifications'}
-                </p>
-                <p>
-                  • <strong>EN ISO 15614-1:</strong>{' '}
-                  {isTr ? 'Kaynak Prosedürü Testleri (k-faktör Isı Girdisi)' : 'Welding Procedure Tests (k-factor Heat Input)'}
-                </p>
+                <p>• <strong>ASME Section IX:</strong> {t('standards_modal.asme_ix_desc', 'Qualification Standard for Welding & Brazing')}</p>
+                <p>• <strong>ASME B31.3:</strong> {t('standards_modal.asme_b313_desc', 'Process Piping Code (Joint Details, Socket Cx & PWHT)')}</p>
+                <p>• <strong>ASME B36.10M / B36.19M:</strong> {t('standards_modal.asme_b36_desc', 'Standard Welded & Seamless Wrought Steel Pipe')}</p>
+                <p>• <strong>AWS D1.1 / AWS A5.X:</strong> {t('standards_modal.aws_desc', 'Structural Welding & Consumable Specifications')}</p>
+                <p>• <strong>EN ISO 15614-1:</strong> {t('standards_modal.iso_15614_desc', 'Welding Procedure Tests (k-factor Heat Input)')}</p>
               </div>
 
               <div className="pt-2 text-[11px] text-slate-400 flex items-center justify-between gap-2 flex-wrap">
                 <span>
-                  {isTr ? 'Referans Şartname:' : 'Governing Spec:'}{' '}
+                  {t('standards_modal.governing_spec', 'Governing Spec:')}{' '}
                   <strong className="text-slate-600 dark:text-slate-300">WCC-SPEC-2026-REV01</strong>
                 </span>
                 <span className="font-semibold text-fluent-accent dark:text-fluent-accent-dark">

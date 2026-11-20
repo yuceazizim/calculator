@@ -16,8 +16,18 @@
     "theme": "Tema",
     "theme_dark": "Koyu Tema",
     "theme_light": "Açık Tema",
+    "settings": "Ayarlar",
     "standards_info": "Standartlar ve Şartnameler",
     "standards_info_desc": "ASME Sec. IX, B31.3, AWS ve EN"
+  },
+  "standards_modal": {
+    "intro": "Kaynak Sarf Malzeme Hesaplayıcı (WCC); kaynak metali hacmini, elektrot/tel ağırlık ve adetlerini, ark yanma sürelerini ve koruyucu/kök gazı tüketimini sertifikalı uluslararası kaynak mühendisliği standartlarına tam uyumlu olarak hesaplar:",
+    "asme_ix_desc": "Kaynak ve Lehimleme Prosedürü Nitelendirme Standardı",
+    "asme_b313_desc": "Proses Borulama Kodu (Ağız Detayı, Soket Cx & PWHT)",
+    "asme_b36_desc": "Standart Dikişli ve Dikişsiz Çelik Boru Ölçüleri",
+    "aws_desc": "Yapısal Çelik Kaynağı ve Sarf Malzeme Sınıflandırması",
+    "iso_15614_desc": "Kaynak Prosedürü Testleri (k-faktör Isı Girdisi)",
+    "governing_spec": "Referans Şartname:"
   },
   "joint": {
     "title": "Kaynak Ağzı ve Geometri",

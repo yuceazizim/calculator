@@ -1,7 +1,7 @@
 /**
  * Welding Consumable Calculator (WCC)
  * Internationalization (i18n) Engine & React Context Provider
- * Robust JSON Module Extraction with Instant Locale Re-rendering (EN / TR)
+ * Robust JSON Module Extraction with Instant Locale Re-rendering
  * Pure JavaScript Implementation (.js only)
  */
 
@@ -9,13 +9,18 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import enTranslations from './locales/en.json';
 import trTranslations from './locales/tr.json';
 
-// Safe unwrapping for Vite JSON module imports (handles both direct object and ES default export)
 const unwrapDict = (imported) => {
   if (!imported) return {};
   return imported.default && typeof imported.default === 'object' ? imported.default : imported;
 };
 
-const SUPPORTED_LANGUAGES = ['en', 'tr'];
+// Tek merkezden yönetilen dil listesi (40+ dil için buraya ekleme yapılır)
+export const AVAILABLE_LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'tr', label: 'Türkçe' },
+];
+
+const SUPPORTED_LANGUAGES = AVAILABLE_LANGUAGES.map((l) => l.code);
 
 const dictionaries = {
   en: unwrapDict(enTranslations),
@@ -24,11 +29,7 @@ const dictionaries = {
 
 const I18nContext = createContext(null);
 
-/**
- * Provider component for global translation context
- */
 export function I18nProvider({ children }) {
-  // Read initial language from localStorage, default to English
   const [language, setLanguageState] = useState(() => {
     try {
       const saved = localStorage.getItem('wcc_language');
@@ -38,7 +39,6 @@ export function I18nProvider({ children }) {
     }
   });
 
-  // Language switcher that directly triggers state update
   const setLanguage = useCallback((lang) => {
     const targetLang = SUPPORTED_LANGUAGES.includes(lang) ? lang : 'en';
     setLanguageState(targetLang);
@@ -50,21 +50,16 @@ export function I18nProvider({ children }) {
     document.documentElement.lang = targetLang;
   }, []);
 
-  // Sync HTML document lang attribute on mount or change
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
 
-  /**
-   * Safe nested key translation resolver (e.g. t("joint.bevel_angle"))
-   */
   const t = useCallback((keyPath, fallback = '') => {
     if (!keyPath) return fallback;
 
     const currentDict = dictionaries[language] || dictionaries.en || {};
     const keys = keyPath.split('.');
 
-    // 1. Try to find the key in the currently active language
     let current = currentDict;
     let foundInCurrent = true;
 
@@ -81,7 +76,6 @@ export function I18nProvider({ children }) {
       return current;
     }
 
-    // 2. Fallback to English dictionary if key is missing in active language
     let fallbackCurrent = dictionaries.en || {};
     for (const fk of keys) {
       if (fallbackCurrent && typeof fallbackCurrent === 'object' && fk in fallbackCurrent) {
@@ -94,7 +88,6 @@ export function I18nProvider({ children }) {
     return typeof fallbackCurrent === 'string' ? fallbackCurrent : (fallback || keyPath);
   }, [language]);
 
-  // Memoize context value to guarantee immediate re-rendering of all consumers on language switch
   const contextValue = useMemo(() => ({
     language,
     setLanguage,
@@ -108,9 +101,6 @@ export function I18nProvider({ children }) {
   );
 }
 
-/**
- * Custom Hook to access translations and language switcher
- */
 export function useTranslation() {
   const context = useContext(I18nContext);
   if (!context) {
