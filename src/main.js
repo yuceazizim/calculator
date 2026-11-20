@@ -23,3 +23,12 @@ ReactDOM.createRoot(rootElement).render(
     </I18nProvider>
   </React.StrictMode>
 );
+
+// Register Offline-First PWA Service Worker in Production Build
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('./sw.js', { scope: './' })
+      .catch((err) => console.warn('SW registration skipped:', err));
+  });
+}
