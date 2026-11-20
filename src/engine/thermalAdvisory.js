@@ -47,6 +47,10 @@ export function buildThermalAdvisory(metallurgy, wallThicknessMm) {
     preheatMinCelsius = 20;
     interpassMaxCelsius = 175;
     preheatNote = 'Austenitic Stainless (P-No 8): No preheat; strictly maintain interpass ≤ 175°C.';
+  } else if (t >= 50.0) {
+    preheatMinCelsius = 150;
+    interpassMaxCelsius = isLowTemp ? 200 : 235;
+    preheatNote = 'Heavy-section Carbon Steel (t ≥ 50 mm): Apply min 150°C preheat; control interpass ≤ 235°C.';
   } else if (isLowTemp || t >= 20.0) {
     preheatMinCelsius = 100;
     interpassMaxCelsius = isLowTemp ? 200 : 250;

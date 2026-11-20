@@ -4,6 +4,7 @@
  * Features:
  *   - Geometry-Driven 4-Layer Automatic Sequencing (Root, Hot, Fill & Cap)
  *   - ASME QW-410 (3xd) Cap Stringer Width & Area Capacity Rules
+ *   - Calibrated Heavy-Wall SMAW Narrow Root Fill & Uphill Weave Bead Area
  *   - Multi-Process Custom Stepped Pass Stacking Mode
  *   - Per-Layer Torch & Backing/Purge Gas Flow Resolution
  *   - Smart Auto-Suggest Generator synced with Physical Groove Geometry
@@ -20,7 +21,6 @@ import {
   getNominalBeadArea,
   getProcessTravelSpeed,
   getHeatInputMetrics,
-  getUnitDepositWeightGrams,
 } from './processSpecs.js';
 
 /**
@@ -137,6 +137,8 @@ function buildAutomaticSchedule({
   let passIdx = 1;
   const safeTotalArea = geom.totalCrossSectionAreaMm2 || 1.0;
   const isFullTigJoint = rootProcess === 'GTAW' && fillProcess === 'GTAW';
+  const isVerticalUphill =
+    speedCtx.posSpeedMult === 1.0 && speedCtx.effectiveDirectionMult === 1.0;
 
   const pushLayer = ({
     layerName,
@@ -228,7 +230,7 @@ function buildAutomaticSchedule({
     });
   }
 
-  // 2B. Hot Pass (Pass 2) - uses Root Process when GTAW or same process, or Fill Process if non-GTAW root
+  // 2B. Hot Pass (Pass 2)
   if (geom.areaHotOnly > 0) {
     const hotProc = rProc === 'GTAW' ? 'GTAW' : fProc;
     const hotDia = rProc === 'GTAW' ? rDia : fDia;
@@ -245,15 +247,15 @@ function buildAutomaticSchedule({
     });
   }
 
-  // 2C. Groove Fill (Exact remaining groove body up to flush surface)
+  // 2C. Groove Fill (Calibrated against PQR AS-002 / CS-005A for heavy walls)
   if (geom.areaFill > 0.5) {
     const isHeavySmawButt = fProc === 'SMAW' && geom.t > 15.0 && gasCtx.isGrooveButt;
     if (isHeavySmawButt) {
-      // Narrow root deep fill with Ø 2.50mm (ASME 3xd clearance) + Main Body Fill
-      const deepArea = geom.areaFill * 0.12;
-      const mainArea = geom.areaFill - deepArea;
+      // Narrow root deep fill: capped to ~1-2 passes of Ø 2.50mm regardless of wall thickness
       const deepBead = getNominalBeadArea('SMAW', 2.50);
-      const deepRuns = Math.max(1, Math.min(3, Math.round(deepArea / deepBead)));
+      const deepArea = Math.min(geom.areaFill * 0.12, deepBead * 1.35);
+      const mainArea = Math.max(0, geom.areaFill - deepArea);
+      const deepRuns = Math.max(1, Math.min(2, Math.round(deepArea / deepBead)));
       const deepLen = Math.min(350.0, standardElectrodeLength);
 
       pushLayer({
@@ -267,15 +269,12 @@ function buildAutomaticSchedule({
         isRootOrHotLayer: false,
       });
 
-      const mainUnitDep = getUnitDepositWeightGrams('SMAW', fDia, standardElectrodeLength, {
-        isNickelAlloy: metallurgy.isNickelAlloy,
-        isStainless: metallurgy.isStainless,
-      });
+      // Pure geometric cross-section pass count with uphill weave factor for thick sections
       const mainNominalBead = getNominalBeadArea('SMAW', fDia);
-      const mainGrams = geom.totalNetWeightGrams * (mainArea / safeTotalArea);
-      const mainRunsByArea = Math.round(mainArea / mainNominalBead);
-      const mainRunsByDep = Math.round(mainGrams / Math.max(15.0, mainUnitDep * 1.4));
-      const mainRuns = Math.max(2, Math.round((mainRunsByArea + mainRunsByDep) / 2));
+      const weaveFactor =
+        isVerticalUphill && geom.t >= 25.0 ? (geom.t >= 45.0 ? 1.65 : 1.20) : 1.0;
+      const effectiveFillBead = mainNominalBead * weaveFactor;
+      const mainRuns = Math.max(2, Math.round(mainArea / effectiveFillBead));
 
       pushLayer({
         layerName: `Main Body Fill (${mainRuns}xØ${Number(fDia).toFixed(2)}mm)`,
@@ -456,7 +455,6 @@ export function buildWpsPassSchedule(context) {
 
 /**
  * Smart Auto-Suggest Generator for Custom Mode
- * Generates exact geometry-driven Root, Hot, Fill & Cap layers from current calculator inputs
  */
 export function buildAutoSuggestLayers(params) {
   const geom = calculateWeldGeometry(params);

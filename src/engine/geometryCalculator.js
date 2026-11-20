@@ -83,14 +83,12 @@ export function calculateWeldGeometry(params) {
     bevelTopWidth = capTotalWidth;
 
     if (throatA <= 5.0) {
-      // Single-pass or compact fillet
       areaRootOnly = totalCrossSectionAreaMm2;
       areaHotOnly = 0;
       areaRootPart = areaRootOnly;
       areaFill = 0;
       areaCap = 0;
     } else {
-      // Multi-pass fillet: root + body fill + outer cover cap
       areaRootOnly = Math.min(totalCrossSectionAreaMm2 * 0.35, 18.0 * numSides);
       areaCap = Math.max(convexityCrownArea, totalCrossSectionAreaMm2 * 0.28);
       areaFill = Math.max(0, totalCrossSectionAreaMm2 - areaRootOnly - areaCap);
@@ -136,15 +134,14 @@ export function calculateWeldGeometry(params) {
     const areaGrooveBody = areaRootGap + areaBevel;
     totalCrossSectionAreaMm2 = areaGrooveBody + areaCap;
 
-    // Central land + root pass & back-gouge/hot pass in X-Joint
-    const rootH = Math.min(t * 0.45, Math.max(2.2, f + 1.0));
+    const rootH = Math.min(t * 0.42, Math.max(2.5, f + 1.1));
     const rootBevelH = Math.max(0, rootH - f);
     areaRootOnly = Math.min(
       areaGrooveBody * 0.55,
       (g * rootH) + 2.0 * ((rootBevelH / 2.0) * (rootBevelH / 2.0) * Math.tan(angleRad))
     );
 
-    const hotTopH = Math.min(t * 0.72, rootH + 2.0);
+    const hotTopH = Math.min(t * 0.70, rootH + 2.5);
     const hotBevelH = Math.max(0, hotTopH - f);
     const areaRootPlusHot = Math.min(
       areaGrooveBody * 0.85,
@@ -184,15 +181,15 @@ export function calculateWeldGeometry(params) {
       areaRootPart = areaGrooveBody;
       areaFill = 0;
     } else {
-      // Medium & Heavy Wall (e.g. t = 10mm, 20mm, 40mm): Physical Root + Hot + Fill + Cap
-      const rootH = Math.min(t * 0.45, Math.max(2.0, f + 0.8));
+      // Medium & Heavy Wall: Calibrated 5.0-5.5mm GTAW Root + Hot deposit height
+      const rootH = Math.min(t * 0.42, Math.max(2.5, f + 1.1));
       const rootBevelH = Math.max(0, rootH - f);
       areaRootOnly =
         (g * rootH) +
         (rootBevelH * rootBevelH * Math.tan(angleRad)) +
         areaRootPenetration;
 
-      const hotTopH = Math.min(t * 0.72, rootH + 1.8);
+      const hotTopH = Math.min(t * 0.68, rootH + 2.5);
       const hotBevelH = Math.max(0, hotTopH - f);
       const areaRootPlusHot =
         (g * hotTopH) +
