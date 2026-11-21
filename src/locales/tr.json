@@ -13,12 +13,14 @@
     "standards": "Standartlar Kataloğu",
     "pqr_records": "PQR Referansları",
     "language": "Dil",
+    "language_search": "Dil ara...",
     "theme": "Tema",
     "theme_dark": "Koyu Tema",
     "theme_light": "Açık Tema",
     "settings": "Ayarlar",
     "standards_info": "Standartlar ve Şartnameler",
     "standards_info_desc": "ASME Sec. IX, B31.3, AWS ve EN"
+    
   },
   "standards_modal": {
     "intro": "Kaynak Sarf Malzeme Hesaplayıcı (WCC); kaynak metali hacmini, elektrot/tel ağırlık ve adetlerini, ark yanma sürelerini ve koruyucu/kök gazı tüketimini sertifikalı uluslararası kaynak mühendisliği standartlarına tam uyumlu olarak hesaplar:",

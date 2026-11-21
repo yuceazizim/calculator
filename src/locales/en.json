@@ -13,12 +13,14 @@
     "standards": "Standards Catalog",
     "pqr_records": "PQR Benchmarks",
     "language": "Language",
+    "language_search": "Search language...",
     "theme": "Theme",
     "theme_dark": "Dark Mode",
     "theme_light": "Light Mode",
     "settings": "Settings",
     "standards_info": "Standards & Specifications",
     "standards_info_desc": "ASME Sec. IX, B31.3, AWS & EN"
+    
   },
   "standards_modal": {
     "intro": "The Welding Consumable Calculator (WCC) calculates weld metal volume, consumable weights, arc-on times, and shielding/purge gas consumption in strict conformance with certified international welding engineering standards:",
