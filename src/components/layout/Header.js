@@ -8,13 +8,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation, AVAILABLE_LANGUAGES } from '../../i18n.js';
-import {
-  Calculator,
-  Database,
-  FileCheck2,
-  Settings,
-  X,
-} from 'lucide-react';
+import { Settings, X } from 'lucide-react';
 
 export default function Header({
   activeTab,
@@ -57,6 +51,12 @@ export default function Header({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isSettingsOpen, isInfoModalOpen]);
+
+  const navTabs = [
+    { id: 'calculator', label: t('nav.calculator', 'Calculator') },
+    { id: 'catalog', label: t('nav.standards', 'Standards Catalog') },
+    { id: 'pqr', label: t('nav.pqr_records', 'PQR Benchmarks') },
+  ];
 
   return (
     <>
@@ -190,47 +190,44 @@ export default function Header({
           </div>
         </div>
 
-        {/* 3. Segmented Navigation Tabs (Calculator, Catalog, PQR) */}
-        <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 flex gap-1 border-t border-black/[0.04] dark:border-white/[0.04] py-1 overflow-x-auto no-scrollbar">
-          <button
-            type="button"
-            onClick={() => setActiveTab('calculator')}
-            className={`px-3 py-1.5 rounded-fluent text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'calculator'
-                ? 'bg-white dark:bg-[#333333] text-fluent-accent dark:text-fluent-accent-dark shadow-sm border border-black/[0.08] dark:border-white/[0.08]'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
-            }`}
-          >
-            <Calculator className="w-4 h-4" />
-            <span>{t('nav.calculator', 'Calculator')}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('catalog')}
-            className={`px-3 py-1.5 rounded-fluent text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'catalog'
-                ? 'bg-white dark:bg-[#333333] text-fluent-accent dark:text-fluent-accent-dark shadow-sm border border-black/[0.08] dark:border-white/[0.08]'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
-            }`}
-          >
-            <Database className="w-4 h-4" />
-            <span>{t('nav.standards', 'Standards Catalog')}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('pqr')}
-            className={`px-3 py-1.5 rounded-fluent text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'pqr'
-                ? 'bg-white dark:bg-[#333333] text-fluent-accent dark:text-fluent-accent-dark shadow-sm border border-black/[0.08] dark:border-white/[0.08]'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
-            }`}
-          >
-            <FileCheck2 className="w-4 h-4" />
-            <span>{t('nav.pqr_records', 'PQR Benchmarks')}</span>
-          </button>
-        </div>
+        {/* 3. Centered Windows 11 Pro Fluent Navigation Tabs (Icon-Free, Mobile-First) */}
+        <nav
+          aria-label="Primary Navigation"
+          className="w-full border-t border-black/[0.04] dark:border-white/[0.04] overflow-x-auto no-scrollbar"
+        >
+          <div className="w-max min-w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-1.5 flex items-center justify-center">
+            <div
+              role="tablist"
+              className="inline-flex items-center gap-1 p-1 rounded-fluent bg-black/[0.03] dark:bg-white/[0.035] border border-black/[0.05] dark:border-white/[0.06]"
+            >
+              {navTabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`relative px-3.5 sm:px-5 py-1.5 rounded-[6px] text-xs sm:text-[13px] tracking-tight transition-all duration-150 whitespace-nowrap select-none active:scale-[0.98] ${
+                      isActive
+                        ? 'bg-white dark:bg-[#333333] text-slate-900 dark:text-white font-semibold shadow-sm border border-black/[0.07] dark:border-white/[0.08]'
+                        : 'text-slate-600 dark:text-slate-400 font-medium hover:text-slate-900 dark:hover:text-slate-100 hover:bg-black/[0.035] dark:hover:bg-white/[0.04] border border-transparent'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    {isActive && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute bottom-[3px] left-1/2 -translate-x-1/2 w-5 h-[2.5px] rounded-full bg-fluent-accent dark:bg-fluent-accent-dark"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </nav>
       </header>
 
       {/* Windows 11 Fluent ContentDialog: Standards & Specifications Modal */}
