@@ -113,7 +113,11 @@ export function buildGasPolicyContext({
  */
 function computeCapPassCount({ capTotalWidth, areaCap, capProc, capDia, weldGeometry }) {
   const nominalBead = getNominalBeadArea(capProc, capDia);
-  const effectiveMaxBeadWidth = Math.max(1.5, capDia * 2.8); // Strictly <= 3.0 * d (ASME QW-410)
+  // Continuous thin-wire processes (GMAW/FCAW) lay a ~7.5-9.5mm weld pool despite 0.8-1.6mm wire dia
+  const wireBeadWidth = ['GMAW', 'FCAW'].includes(capProc)
+    ? Math.max(capDia * 2.8, Math.sqrt(nominalBead * 2.5))
+    : capDia * 2.8;
+  const effectiveMaxBeadWidth = Math.max(1.5, wireBeadWidth);
   const widthBasedRuns = Math.max(1, Math.ceil((capTotalWidth || effectiveMaxBeadWidth) / effectiveMaxBeadWidth));
   const singleSideRuns = Math.min(12, Math.max(widthBasedRuns, Math.ceil((areaCap / (weldGeometry === 'double_v' ? 2.0 : 1.0)) / (nominalBead * 1.35))));
   return weldGeometry === 'double_v' ? singleSideRuns * 2 : singleSideRuns;
