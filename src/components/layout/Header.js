@@ -1,14 +1,15 @@
 /**
  * Welding Consumable Calculator (WCC)
  * Layout Component: Header (Standalone Calculator Edition)
- * Windows 11 Pro Fluent UI Navigation Bar & Minimalist Settings Flyout
+ * Windows 11 Pro Fluent UI Navigation Bar, Minimalist Settings Flyout &
+ * Custom Theme-Aware Fluent Language Select (Google Language Style, 40+ Languages Ready)
  * Standards: ASME Sec. IX • ASME B31.3 • AWS A5.X • EN ISO 15614-1
  * Pure JavaScript (.js only)
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation, AVAILABLE_LANGUAGES } from '../../i18n.js';
-import { Settings, X } from 'lucide-react';
+import { Settings, X, Globe, ChevronDown, Check, Search } from 'lucide-react';
 
 export default function Header({
   activeTab,
@@ -18,8 +19,33 @@ export default function Header({
 }) {
   const { t, language, setLanguage } = useTranslation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
+  const [langSearch, setLangSearch] = useState('');
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const settingsMenuRef = useRef(null);
+
+  const currentLanguageObj = useMemo(
+    () => AVAILABLE_LANGUAGES.find((l) => l.code === language) || AVAILABLE_LANGUAGES[0],
+    [language]
+  );
+
+  const filteredLanguages = useMemo(() => {
+    const q = langSearch.trim().toLowerCase();
+    if (!q) return AVAILABLE_LANGUAGES;
+    return AVAILABLE_LANGUAGES.filter(
+      (l) =>
+        l.label.toLowerCase().includes(q) ||
+        l.code.toLowerCase().includes(q)
+    );
+  }, [langSearch]);
+
+  // Reset language dropdown state when Settings flyout closes
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      setIsLangDropdownOpen(false);
+      setLangSearch('');
+    }
+  }, [isSettingsOpen]);
 
   // Close flyout on outside click/touch or Escape
   useEffect(() => {
@@ -37,8 +63,12 @@ export default function Header({
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        setIsSettingsOpen(false);
-        setIsInfoModalOpen(false);
+        if (isLangDropdownOpen) {
+          setIsLangDropdownOpen(false);
+        } else {
+          setIsSettingsOpen(false);
+          setIsInfoModalOpen(false);
+        }
       }
     };
 
@@ -50,7 +80,13 @@ export default function Header({
       document.removeEventListener('touchstart', handleOutsideClick);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isSettingsOpen, isInfoModalOpen]);
+  }, [isSettingsOpen, isLangDropdownOpen, isInfoModalOpen]);
+
+  const handleSelectLanguage = (code) => {
+    setLanguage(code);
+    setIsLangDropdownOpen(false);
+    setLangSearch('');
+  };
 
   const navTabs = [
     { id: 'calculator', label: t('nav.calculator', 'Calculator') },
@@ -103,7 +139,7 @@ export default function Header({
                 role="menu"
                 className="
                   absolute right-0 top-full mt-1.5
-                  w-[min(calc(100vw-1.5rem),16.5rem)]
+                  w-[min(calc(100vw-1.5rem),17rem)]
                   rounded-fluent-lg
                   bg-white dark:bg-[#2c2c2c]
                   border border-black/[0.09] dark:border-white/[0.1]
@@ -112,26 +148,112 @@ export default function Header({
                   z-50
                 "
               >
-                {/* Language Select (Scales cleanly to 40+ languages) */}
-                <div className="px-2.5 py-2 space-y-1.5">
-                  <label
-                    htmlFor="wcc-language-select"
-                    className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400"
-                  >
+                {/* Custom Windows 11 Pro Fluent + Google Language Select (Scales to 40+ languages) */}
+                <div className="px-2.5 py-2 space-y-1.5 relative">
+                  <span className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                     {t('nav.language', 'Language')}
-                  </label>
-                  <select
-                    id="wcc-language-select"
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="fluent-select py-1.5 text-xs font-medium bg-white dark:bg-[#202020]"
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsLangDropdownOpen((prev) => !prev)}
+                    aria-haspopup="listbox"
+                    aria-expanded={isLangDropdownOpen}
+                    aria-label={t('nav.language', 'Language')}
+                    className={`w-full px-2.5 py-2 rounded-fluent border text-xs font-medium flex items-center justify-between gap-2 transition-all duration-150 bg-white dark:bg-[#202020] text-slate-800 dark:text-slate-100 ${
+                      isLangDropdownOpen
+                        ? 'border-fluent-accent ring-2 ring-fluent-accent/25'
+                        : 'border-black/[0.14] dark:border-white/[0.14] hover:border-fluent-accent/60'
+                    }`}
                   >
-                    {AVAILABLE_LANGUAGES.map((lang) => (
-                      <option key={lang.code} value={lang.code}>
-                        {lang.label}
-                      </option>
-                    ))}
-                  </select>
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Globe className="w-3.5 h-3.5 text-fluent-accent dark:text-fluent-accent-dark flex-shrink-0" />
+                      <span className="truncate font-semibold">
+                        {currentLanguageObj?.label || language}
+                      </span>
+                    </span>
+
+                    <span className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-black/[0.04] dark:bg-white/[0.07] text-slate-500 dark:text-slate-400">
+                        {currentLanguageObj?.code || language}
+                      </span>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 transition-transform duration-150 ${
+                          isLangDropdownOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </span>
+                  </button>
+
+                  {/* Theme-Aware Fluent Select Dropdown List */}
+                  {isLangDropdownOpen && (
+                    <div
+                      role="listbox"
+                      aria-label={t('nav.language', 'Language')}
+                      className="
+                        absolute left-2.5 right-2.5 top-[calc(100%-2px)]
+                        mt-1 z-50
+                        rounded-fluent-lg
+                        bg-white dark:bg-[#252525]
+                        border border-black/[0.1] dark:border-white/[0.12]
+                        shadow-fluent-flyout
+                        p-1
+                        animate-in fade-in duration-100
+                      "
+                    >
+                      {/* Auto-enabled Google-style quick filter when > 6 languages */}
+                      {AVAILABLE_LANGUAGES.length > 6 && (
+                        <div className="p-1 pb-1.5 border-b border-black/[0.06] dark:border-white/[0.08] mb-1">
+                          <div className="relative">
+                            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <input
+                              type="text"
+                              value={langSearch}
+                              onChange={(e) => setLangSearch(e.target.value)}
+                              placeholder={t('nav.language_search', 'Search language...')}
+                              className="w-full pl-7 pr-2 py-1 text-xs rounded-[6px] bg-black/[0.03] dark:bg-[#1c1c1c] text-slate-800 dark:text-slate-100 border border-black/[0.08] dark:border-white/[0.1] focus:outline-none focus:border-fluent-accent"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="max-h-60 overflow-y-auto space-y-0.5">
+                        {filteredLanguages.map((lang) => {
+                          const isSelected = lang.code === language;
+                          return (
+                            <button
+                              key={lang.code}
+                              type="button"
+                              role="option"
+                              aria-selected={isSelected}
+                              onClick={() => handleSelectLanguage(lang.code)}
+                              className={`relative w-full px-2.5 py-2 rounded-[6px] text-xs flex items-center justify-between gap-2 text-left transition-colors ${
+                                isSelected
+                                  ? 'bg-fluent-accent/[0.08] dark:bg-fluent-accent-dark/[0.14] text-slate-900 dark:text-white font-semibold'
+                                  : 'text-slate-700 dark:text-slate-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+                              }`}
+                            >
+                              {isSelected && (
+                                <span
+                                  aria-hidden="true"
+                                  className="absolute left-0.5 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full bg-fluent-accent dark:bg-fluent-accent-dark"
+                                />
+                              )}
+                              <span className="pl-1.5 truncate">{lang.label}</span>
+                              <span className="flex items-center gap-1.5 flex-shrink-0">
+                                <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">
+                                  {lang.code}
+                                </span>
+                                {isSelected && (
+                                  <Check className="w-3.5 h-3.5 text-fluent-accent dark:text-fluent-accent-dark" />
+                                )}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Windows 11 Native-Style Dark Mode Toggle Switch */}
