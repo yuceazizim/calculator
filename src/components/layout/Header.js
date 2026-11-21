@@ -9,7 +9,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation, AVAILABLE_LANGUAGES } from '../../i18n.js';
 import {
-  Flame,
   Calculator,
   Database,
   FileCheck2,
@@ -62,31 +61,23 @@ export default function Header({
   return (
     <>
       <header className="sticky top-0 z-40 w-full bg-white/85 dark:bg-[#202020]/85 backdrop-blur-acrylic border-b border-black/[0.08] dark:border-white/[0.08] transition-colors duration-200">
-        <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2">
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-12 sm:h-14 flex items-center justify-between gap-2">
           
-          {/* 1. Brand Logo & Title */}
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-fluent bg-fluent-accent/10 dark:bg-fluent-accent-dark/15 border border-fluent-accent/25 flex items-center justify-center text-fluent-accent dark:text-fluent-accent-dark shadow-sm flex-shrink-0">
-              <Flame className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-sm sm:text-base tracking-tight text-slate-900 dark:text-white truncate">
-                  {t('app.short_title', 'WCC')}
-                </span>
-                <span className="font-semibold text-xs sm:text-sm text-slate-600 dark:text-slate-300 truncate">
-                  Engineering
-                </span>
-                <span className="ml-0.5 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold tracking-wide uppercase bg-fluent-accent/15 text-fluent-accent dark:text-fluent-accent-dark rounded flex-shrink-0">
-                  Pro
-                </span>
-              </div>
-              <span className="hidden sm:inline text-[11px] text-slate-400 dark:text-slate-500 font-normal leading-none mt-0.5">
-                Welding Consumable &amp; Gas Engine
-              </span>
-            </div>
-          </div>
+          {/* 1. Minimalist Fluent WCC Brand Mark (Matches PWA Icon) */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('calculator')}
+            aria-label={t('app.title', 'Welding Consumable Calculator')}
+            className="relative h-8 px-2.5 rounded-[7px] bg-fluent-accent hover:bg-fluent-accent-hover active:scale-[0.98] flex items-center justify-center shadow-sm transition-all duration-150 select-none overflow-hidden"
+          >
+            <span className="text-[13px] font-extrabold tracking-wider text-white leading-none -mt-0.5">
+              WCC
+            </span>
+            <span
+              aria-hidden="true"
+              className="absolute bottom-1 left-2 right-2 h-[2.5px] rounded-full bg-[#4cc2ff]"
+            />
+          </button>
 
           {/* 2. Top Right: Clean Windows 11 Settings Trigger & MenuFlyout */}
           <div className="relative flex-shrink-0" ref={settingsMenuRef}>
