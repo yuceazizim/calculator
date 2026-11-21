@@ -5,7 +5,10 @@
  * Pure JavaScript (.js only)
  */
 
-import { getUnitDepositWeightGrams } from './processSpecs.js';
+import {
+  getUnitDepositWeightGrams,
+  getRawUnitWeightGrams,
+} from './processSpecs.js';
 
 /**
  * Accumulate schedule rows, calculate single-joint consumables & gas,
@@ -43,6 +46,7 @@ export function aggregateConsumablesAndBatch({
   let rawSawGrams = 0;
 
   let exactTigRodsFloat = 0;
+  let exactTigGrossGrams = 0;
   let exactSmawElectrodesFloat = 0;
   const usedTigDias = new Set();
   const usedSmawDias = new Set();
@@ -79,8 +83,14 @@ export function aggregateConsumablesAndBatch({
         isStainless: metallurgy.isStainless,
         isFluxCoredTig,
       });
+      const rawRodMass = getRawUnitWeightGrams('GTAW', rowDia, rowLen, {
+        isNickelAlloy: metallurgy.isNickelAlloy,
+        isStainless: metallurgy.isStainless,
+        isFluxCoredTig,
+      });
       const rowExactPieces = (rowRawGrams * scrapMultiplier) / unitDep;
       exactTigRodsFloat += rowExactPieces;
+      exactTigGrossGrams += rowExactPieces * rawRodMass;
       row.pieceCount = Math.max(1, Math.round(rowExactPieces));
     } else if (row.process === 'SMAW') {
       smawNetGrams += row.netWeightGrams;
@@ -138,14 +148,13 @@ export function aggregateConsumablesAndBatch({
       ? `${usedSmawArr.map((d) => `Ø ${d}`).join(' / ')} mm × ${Math.round(effectiveSmawLen)} mm`
       : `Ø ${selectedSmawDia} mm × ${Math.round(standardElectrodeLength)} mm`);
 
-  // Single-joint gross weights
+  // Single-joint gross weights (consistent with exact rod/electrode physics)
   const tigActive = gtawNetGrams > 0;
-  const tigGrossWeightGrams = tigActive
-    ? Math.round(((gtawNetGrams * scrapMultiplier) / 0.95) * 10) / 10
-    : 0;
+  const tigGrossWeightGrams = tigActive ? Math.round(exactTigGrossGrams * 10) / 10 : 0;
 
   const smawActive = smawNetGrams > 0;
-  const smawEfficiency = 0.60;
+  // Covered electrode box-to-weld efficiency (~57% accounting for flux coating, 50mm stub & spatter)
+  const smawEfficiency = 0.57;
   const smawGrossWeightGrams = smawActive
     ? Math.round(((smawNetGrams * scrapMultiplier) / smawEfficiency) * 10) / 10
     : 0;
@@ -222,7 +231,7 @@ export function aggregateConsumablesAndBatch({
   const projTotalSeamMeters = (geom.seamLengthMm * qty) / 1000.0;
 
   const projTigNetKg = (rawGtawGrams * qty) / 1000.0;
-  const projTigGrossKg = (rawGtawGrams * qty * scrapMultiplier / 0.95) / 1000.0;
+  const projTigGrossKg = (exactTigGrossGrams * qty) / 1000.0;
   const projTigRods = tigActive ? Math.ceil(exactTigRodsFloat * qty) : 0;
   const projTigBoxes5Kg = tigActive ? Math.ceil(projTigGrossKg / 5.0) : 0;
 

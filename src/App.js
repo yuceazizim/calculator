@@ -9,7 +9,6 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from './i18n.js';
 import { useWeldCalculator } from './hooks/useWeldCalculator.js';
 import Header from './components/layout/Header.js';
 import Footer from './components/layout/Footer.js';
@@ -22,8 +21,6 @@ import PqrBenchmarkList from './components/pqr/PqrBenchmarkList.js';
 import { AlertCircle } from 'lucide-react';
 
 export default function App() {
-  const { t } = useTranslation();
-
   // Navigation Views State: 'calculator' | 'catalog' | 'pqr'
   const [darkMode, setDarkMode] = useState(() => {
     try {
@@ -129,6 +126,14 @@ export default function App() {
     if (typeof preset.requiresBackingGas === 'boolean') calc.setRequiresBackingGas(preset.requiresBackingGas);
     if (typeof preset.isFluxCoredTig === 'boolean') calc.setIsFluxCoredTig(preset.isFluxCoredTig);
 
+    if (Array.isArray(preset.customPassGroups) && preset.customPassGroups.length > 0) {
+      calc.setCustomPassGroups(preset.customPassGroups);
+      calc.setUseCustomPassSequencing(true);
+    } else {
+      calc.setCustomPassGroups([]);
+      calc.setUseCustomPassSequencing(false);
+    }
+
     setActiveTab('calculator');
     setPendingPqrRecalc(true);
   };
@@ -137,21 +142,19 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-[#f3f3f3] dark:bg-[#1a1a1a] text-slate-800 dark:text-slate-100 transition-colors duration-200">
       
       {/* 1. Windows 11 Fluent Navigation Bar */}
-      <div className="print:hidden">
-        <Header
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-        />
-      </div>
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+      />
 
       {/* 2. Main Workspace */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-1.5 sm:py-6">
         
         {/* Global Error Banner */}
         {calc.errorMessage && (
-          <div className="mx-2 sm:mx-0 mb-3 sm:mb-6 p-3 sm:p-4 rounded-fluent sm:rounded-fluent-lg bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 flex items-center gap-2.5 sm:gap-3 shadow-sm print:hidden">
+          <div className="mx-2 sm:mx-0 mb-3 sm:mb-6 p-3 sm:p-4 rounded-fluent sm:rounded-fluent-lg bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 flex items-center gap-2.5 sm:gap-3 shadow-sm">
             <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
             <p className="text-xs sm:text-sm font-medium">{calc.errorMessage}</p>
           </div>
@@ -287,9 +290,7 @@ export default function App() {
       </main>
 
       {/* 3. Windows 11 Fluent Status Bar / Footer */}
-      <div className="print:hidden">
-        <Footer />
-      </div>
+      <Footer />
 
     </div>
   );

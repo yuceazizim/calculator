@@ -152,7 +152,39 @@ export function getDiameterOptions(process) {
 }
 
 /**
- * Calibrated net deposit weight per piece (rod or electrode) accounting for 50mm SMAW stub loss
+ * Physical raw bare-wire mass (grams) of a single GTAW rod or SMAW core wire
+ * Example: Ø 2.4 mm × 1000 mm Carbon Steel (7.85 g/cm³) = 35.51 g (~141 rods per 5 kg box)
+ */
+export function getRawUnitWeightGrams(
+  proc,
+  dia,
+  electrodeLenMm,
+  { isNickelAlloy = false, isStainless = false, isFluxCoredTig = false } = {}
+) {
+  const d = Math.max(0.4, parseFloat(dia) || 2.4);
+  const density = isNickelAlloy ? 8.44 : (isStainless ? 7.98 : 7.85);
+  const areaMm2 = Math.PI * (d / 2.0) * (d / 2.0);
+
+  if (proc === 'GTAW') {
+    const lenMm = Math.max(100.0, parseFloat(electrodeLenMm) || 1000.0);
+    // Flux-cored tubular TIG wire (e.g. TG-X) has ~85% metallic core fill density
+    const fillFactor = isFluxCoredTig ? 0.85 : 1.0;
+    return (areaMm2 * lenMm * 0.001) * density * fillFactor;
+  }
+
+  if (proc === 'SMAW') {
+    const lenMm = Math.max(150.0, parseFloat(electrodeLenMm) || 350.0);
+    // Core wire mass (excluding flux coating; 50 mm stub loss applied in net deposit calc)
+    return (areaMm2 * lenMm * 0.001) * density;
+  }
+
+  return 1.0;
+}
+
+/**
+ * Physically calibrated net weld metal deposit weight per piece (rod or electrode)
+ * - GTAW: Bare rod mass × 0.90 usable efficiency (~100 mm hand-hold stub loss on 1000 mm rod)
+ * - SMAW: Active burned core wire (Length - 50 mm stub) × recovery factor (0.95 CS/LA E7018, 0.90 SS/Ni)
  */
 export function getUnitDepositWeightGrams(
   proc,
@@ -160,46 +192,29 @@ export function getUnitDepositWeightGrams(
   electrodeLenMm,
   { isNickelAlloy = false, isStainless = false, isFluxCoredTig = false } = {}
 ) {
+  const d = Math.max(0.4, parseFloat(dia) || 2.4);
+  const density = isNickelAlloy ? 8.44 : (isStainless ? 7.98 : 7.85);
+  const areaMm2 = Math.PI * (d / 2.0) * (d / 2.0);
+
   if (proc === 'GTAW') {
-    const rodLenRatio = (parseFloat(electrodeLenMm) || 1000.0) / 1000.0;
-    let baseTig = 33.0;
-    if (dia <= 1.6) baseTig = isNickelAlloy ? 15.3 : 14.2;
-    else if (dia <= 2.0) baseTig = isNickelAlloy ? 23.9 : 22.2;
-    else if (dia <= 2.4) {
-      baseTig = isFluxCoredTig ? 30.5 : (isNickelAlloy ? 35.0 : (isStainless ? 33.5 : 33.0));
-    } else {
-      baseTig = isNickelAlloy ? 61.5 : 57.0;
-    }
-    return baseTig * rodLenRatio;
+    const rawRodGrams = getRawUnitWeightGrams('GTAW', d, electrodeLenMm, {
+      isNickelAlloy,
+      isStainless,
+      isFluxCoredTig,
+    });
+    // ~10% stub/end-cut & arc transfer loss on 1000 mm TIG rod (Ø 2.4mm CS -> 31.96 g net deposit)
+    return Math.round(rawRodGrams * 0.90 * 100) / 100;
   }
 
   if (proc === 'SMAW') {
     const stubLossMm = 50.0;
     const chosenLen = parseFloat(electrodeLenMm) || 350.0;
     const activeLenMm = Math.max(100.0, chosenLen - stubLossMm);
+    const activeCoreMassGrams = (areaMm2 * activeLenMm * 0.001) * density;
 
-    let baseDeposit = 22.5;
-    let refTotalLenMm = 350.0;
-
-    if (dia <= 2.0) {
-      baseDeposit = 7.5;
-      refTotalLenMm = 300.0;
-    } else if (dia <= 2.50) {
-      baseDeposit = (isStainless || isNickelAlloy) ? 11.2 : 13.8;
-      refTotalLenMm = (isStainless || isNickelAlloy) ? 300.0 : 350.0;
-    } else if (dia <= 3.25) {
-      baseDeposit = (isStainless || isNickelAlloy) ? 21.8 : 22.5;
-      refTotalLenMm = 350.0;
-    } else if (dia <= 4.00) {
-      baseDeposit = (isStainless || isNickelAlloy) ? 33.5 : 44.0;
-      refTotalLenMm = (isStainless || isNickelAlloy) ? 350.0 : 450.0;
-    } else {
-      baseDeposit = 68.0;
-      refTotalLenMm = 450.0;
-    }
-
-    const refActiveLenMm = Math.max(100.0, refTotalLenMm - stubLossMm);
-    return baseDeposit * (activeLenMm / refActiveLenMm);
+    // E7018/E8018 basic iron-powder coating recovers ~95% of active core wire; rutile SS/Ni ~90%
+    const recoveryFactor = (isStainless || isNickelAlloy) ? 0.90 : 0.95;
+    return Math.round(activeCoreMassGrams * recoveryFactor * 100) / 100;
   }
 
   return 1.0;
@@ -207,6 +222,7 @@ export function getUnitDepositWeightGrams(
 
 /**
  * Nominal single-pass cross-sectional bead area (mm²) per process and diameter
+ * SAW calibrated against TSGI-PQR-CS-025 (Ø 2.50 mm EH12K -> ~33 mm² per pass)
  */
 export function getNominalBeadArea(proc, dia) {
   if (proc === 'GTAW') {
@@ -228,40 +244,69 @@ export function getNominalBeadArea(proc, dia) {
     return 35.0;
   }
   if (proc === 'SAW') {
-    if (dia <= 2.60) return 55.0;
-    if (dia <= 3.30) return 75.0;
-    return 95.0;
+    if (dia <= 2.60) return 33.0;
+    if (dia <= 3.30) return 50.0;
+    return 70.0;
   }
   return 20.0;
 }
 
 /**
- * Calibrated travel speed (mm/min) per process, diameter, pipe/plate & position
+ * Calibrated travel speed (mm/min) per process, diameter, metallurgy, pipe/plate & position
+ * Benchmarked against STAR Refinery PQRs: AS-001, AS-002, AS-005, CS-025 & SS-004
  */
 export function getProcessTravelSpeed(
   proc,
   dia,
   isRootPass = false,
-  { isPipe = true, t = 10, posSpeedMult = 1.0, effectiveDirectionMult = 1.0 } = {}
+  {
+    isPipe = true,
+    t = 10,
+    posSpeedMult = 1.0,
+    effectiveDirectionMult = 1.0,
+    isStainless = false,
+    isDuplex = false,
+    isNickelAlloy = false,
+    isP9 = false,
+    isP11 = false,
+    isCapPass = false,
+  } = {}
 ) {
   const speedMult = posSpeedMult * effectiveDirectionMult;
+
   if (proc === 'GTAW') {
-    const gtawRootSpeed = isPipe ? 37.5 : 60.0;
-    return (isRootPass ? gtawRootSpeed : 88.0) * speedMult;
+    // High-alloy / viscous weld pools (Stainless, Duplex, Inconel, P9, thick P11) run slower controlled TIG
+    const isSlowAlloy = isStainless || isDuplex || isNickelAlloy || isP9 || (isP11 && t >= 15.0);
+    if (isPipe) {
+      const rootSpeed = isSlowAlloy ? 37.5 : 85.0;
+      const fillSpeed = isSlowAlloy ? 88.0 : 120.0;
+      return (isRootPass ? rootSpeed : fillSpeed) * speedMult;
+    }
+    const plateRootSpeed = isSlowAlloy ? 50.0 : 95.0;
+    const plateFillSpeed = isSlowAlloy ? 95.0 : 130.0;
+    return (isRootPass ? plateRootSpeed : plateFillSpeed) * speedMult;
   }
+
   if (proc === 'SMAW') {
     const heavyPlate40Speed = t >= 35.0 ? 85.0 : 110.0;
-    return (dia <= 2.50 ? 85.0 : (dia <= 3.25 ? 90.0 : heavyPlate40Speed)) * speedMult;
+    const baseSpeed = dia <= 2.50 ? 85.0 : (dia <= 3.25 ? 92.0 : heavyPlate40Speed);
+    const isSlowAlloyCap = isStainless || isDuplex || isNickelAlloy;
+    const capSpeedFactor = isCapPass ? (isSlowAlloyCap ? 1.05 : 1.20) : 1.0;
+    return baseSpeed * capSpeedFactor * speedMult;
   }
+
   if (proc === 'GMAW') {
     return (isRootPass ? 70.0 : 140.0) * speedMult;
   }
+
   if (proc === 'FCAW') {
-    return (isRootPass ? 160.0 : 225.0) * speedMult;
+    return (isRootPass ? 135.0 : 165.0) * speedMult;
   }
+
   if (proc === 'SAW') {
-    return 500.0; // Mechanized 1G process
+    return 500.0; // Mechanized 1G process (TSGI-PQR-CS-025 avg: 513.5 mm/min)
   }
+
   return 90.0 * speedMult;
 }
 

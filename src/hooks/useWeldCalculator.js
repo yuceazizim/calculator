@@ -7,7 +7,7 @@
  * Pure JavaScript (.js only)
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PIPE_CATALOG } from '../data/pipesData.js';
 import { BASE_MATERIALS } from '../data/materialsData.js';
 import { JOINT_GEOMETRIES, SHIELDING_GASES } from '../data/jointsAndGasesData.js';
@@ -90,6 +90,7 @@ export function useWeldCalculator() {
   const [calculating, setCalculating] = useState(false);
   const [calculationResult, setCalculationResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const isInitialMountRef = useRef(true);
 
   // Handle Pipe Catalog Selection
   const handlePipeSelect = useCallback((pipeId) => {
@@ -103,6 +104,10 @@ export function useWeldCalculator() {
 
       if (pipe.outside_diameter_mm <= 73.0) {
         setTigWireDiaMm('2.0');
+        setSmawElectrodeDiaMm('2.50');
+        setSmawLengthMm('350');
+      } else if (pipe.wall_thickness_mm <= 7.5) {
+        setTigWireDiaMm('2.4');
         setSmawElectrodeDiaMm('2.50');
         setSmawLengthMm('350');
       } else if (pipe.wall_thickness_mm > 12.0) {
@@ -268,12 +273,20 @@ export function useWeldCalculator() {
     customPassGroups,
   ]);
 
-  // Automatic Initial Calculation on first mount
+  // Automatic calculation on initial mount and smooth debounced auto-recalculation on input changes
   useEffect(() => {
-    if (!calculationResult) {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
       executeCalculation();
+      return undefined;
     }
-  }, [calculationResult, executeCalculation]);
+
+    const timer = setTimeout(() => {
+      executeCalculation();
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, [executeCalculation]);
 
   return {
     // Local Engine Status

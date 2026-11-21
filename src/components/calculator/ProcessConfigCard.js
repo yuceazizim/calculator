@@ -12,6 +12,13 @@
 import React from 'react';
 import { useTranslation } from '../../i18n.js';
 import {
+  isGasShieldedProcess,
+  getDefaultLengthMm,
+  getDiameterOptions,
+  getRawUnitWeightGrams,
+  getUnitDepositWeightGrams,
+} from '../../engine/processSpecs.js';
+import {
   Activity,
   Sparkles,
   RefreshCw,
@@ -91,19 +98,7 @@ export default function ProcessConfigCard({
   const isVerticalFixed = weldPosition === 'vertical_fixed';
   const showSawPositionAdvisory = isSawActive && weldPosition !== 'flat';
 
-  const isGasShieldedProcess = (proc) => ['GTAW', 'GMAW', 'FCAW'].includes(String(proc || '').toUpperCase());
-
-  const getDefaultLengthMm = (proc, dia) => {
-    const p = (proc || 'SMAW').toUpperCase();
-    const d = parseFloat(dia) || 3.25;
-    if (p === 'GTAW') return 1000;
-    if (p === 'SMAW') {
-      if (d <= 2.50) return 300;
-      if (d >= 4.00) return 450;
-      return 350;
-    }
-    return null;
-  };
+  const activeSmawLen = parseFloat(smawLengthMm) || 350;
 
   const getSelectedDiameterForProcess = (proc) => {
     const p = String(proc || '').toUpperCase();
@@ -115,48 +110,6 @@ export default function ProcessConfigCard({
     return 3.25;
   };
 
-  const getDiameterOptions = (process) => {
-    const proc = (process || 'SMAW').toUpperCase();
-    if (proc === 'GTAW') {
-      return [
-        { value: 1.60, label: 'Ø 1.60 mm (≤ 4.8 mm)' },
-        { value: 2.00, label: 'Ø 2.00 mm (≤ 6.0 mm)' },
-        { value: 2.40, label: 'Ø 2.40 mm (≤ 7.2 mm)' },
-        { value: 3.20, label: 'Ø 3.20 mm (≤ 9.6 mm)' },
-      ];
-    }
-    if (proc === 'GMAW') {
-      return [
-        { value: 0.80, label: 'Ø 0.80 mm (≤ 2.4 mm)' },
-        { value: 1.00, label: 'Ø 1.00 mm (≤ 3.0 mm)' },
-        { value: 1.20, label: 'Ø 1.20 mm (≤ 3.6 mm)' },
-        { value: 1.60, label: 'Ø 1.60 mm (≤ 4.8 mm)' },
-      ];
-    }
-    if (proc === 'FCAW') {
-      return [
-        { value: 1.00, label: 'Ø 1.00 mm (≤ 3.0 mm)' },
-        { value: 1.20, label: 'Ø 1.20 mm (≤ 3.6 mm)' },
-        { value: 1.40, label: 'Ø 1.40 mm (≤ 4.2 mm)' },
-        { value: 1.60, label: 'Ø 1.60 mm (≤ 4.8 mm)' },
-      ];
-    }
-    if (proc === 'SAW') {
-      return [
-        { value: 2.50, label: 'Ø 2.50 mm (≤ 7.5 mm)' },
-        { value: 3.20, label: 'Ø 3.20 mm (≤ 9.6 mm)' },
-        { value: 4.00, label: 'Ø 4.00 mm (≤ 12.0 mm)' },
-      ];
-    }
-    return [
-      { value: 2.00, label: 'Ø 2.00 mm (≤ 6.0 mm)' },
-      { value: 2.50, label: 'Ø 2.50 mm (≤ 7.5 mm)' },
-      { value: 3.25, label: 'Ø 3.25 mm (≤ 9.7 mm)' },
-      { value: 4.00, label: 'Ø 4.00 mm (≤ 12.0 mm)' },
-      { value: 5.00, label: 'Ø 5.00 mm (≤ 15.0 mm)' },
-    ];
-  };
-
   const getDefaultTorchFlow = () => {
     const val = parseFloat(gasFlowRateLpm);
     return Number.isFinite(val) && val >= 0 ? val : 14.0;
@@ -165,6 +118,16 @@ export default function ProcessConfigCard({
   const getDefaultPurgeFlow = () => {
     const val = parseFloat(purgeGasFlowRateLpm);
     return Number.isFinite(val) && val >= 0 ? val : 10.0;
+  };
+
+  const formatTigOptionLabel = (dia) => {
+    const rawGrams = getRawUnitWeightGrams('GTAW', dia, 1000, { isFluxCoredTig });
+    return `Ø ${dia.toFixed(1)} mm (${rawGrams.toFixed(1)} g)`;
+  };
+
+  const formatSmawOptionLabel = (dia) => {
+    const netDepositGrams = getUnitDepositWeightGrams('SMAW', dia, activeSmawLen, {});
+    return `Ø ${dia.toFixed(2)} mm (~${netDepositGrams.toFixed(1)} g)`;
   };
 
   const handleAddPassGroup = () => {
@@ -231,7 +194,7 @@ export default function ProcessConfigCard({
     setCustomPassGroups(updated);
   };
 
-  // Auto-Suggest intelligent pass & gas sequence
+  // Auto-Suggest intelligent pass & gas sequence scaled by wall thickness
   const handleApplyAutoSuggest = () => {
     if (!setCustomPassGroups || !setUseCustomPassSequencing) return;
 
@@ -247,6 +210,7 @@ export default function ProcessConfigCard({
       isPurgeActive && (purgeStrategy === 'full' || (purgeStrategy === 'auto' && isThinWallFullPurge));
 
     const selTigDia = getSelectedDiameterForProcess('GTAW');
+    const selSmawDia = getSelectedDiameterForProcess('SMAW');
     const selGmawDia = getSelectedDiameterForProcess('GMAW');
     const selFcawDia = getSelectedDiameterForProcess('FCAW');
     const selSawDia = getSelectedDiameterForProcess('SAW');
@@ -282,7 +246,7 @@ export default function ProcessConfigCard({
           process: 'GTAW',
           diameterMm: selTigDia,
           lengthMm: 1000,
-          passesCount: 2,
+          passesCount: parsedWallThk > 10 ? 4 : 2,
           torchGasLpm: torchVal,
           purgeGasLpm: fullPurgeActive ? purgeVal : 0,
         },
@@ -300,68 +264,156 @@ export default function ProcessConfigCard({
     } else if (rootProcess === 'GTAW' && fillProcess !== 'GTAW') {
       // Case 2: Hybrid GTAW Root/Hot + Fill Process
       if (fillProcess === 'SMAW') {
-        suggested = [
-          {
-            id: 1,
-            label: t('schedule.layer_root', 'Root Pass'),
-            process: 'GTAW',
-            diameterMm: selTigDia,
-            lengthMm: 1000,
-            passesCount: 1,
-            torchGasLpm: torchVal,
-            purgeGasLpm: hybridGtawPurgeActive ? purgeVal : 0,
-          },
-          {
-            id: 2,
-            label: t('schedule.layer_hot', 'Hot Pass'),
-            process: 'GTAW',
-            diameterMm: selTigDia,
-            lengthMm: 1000,
-            passesCount: 1,
-            torchGasLpm: torchVal,
-            purgeGasLpm: hybridGtawPurgeActive ? purgeVal : 0,
-          },
-          {
-            id: 3,
-            label: t('process.auto_root_layer_fill', 'Root-Layer Fill'),
-            process: 'SMAW',
-            diameterMm: 2.50,
-            lengthMm: 300,
-            passesCount: 2,
-            torchGasLpm: 0,
-            purgeGasLpm: hybridFillPurgeActive ? purgeVal : 0,
-          },
-          {
-            id: 4,
-            label: t('process.auto_intermediate_fill', 'Intermediate Fill'),
-            process: 'SMAW',
-            diameterMm: 3.25,
-            lengthMm: 350,
-            passesCount: 4,
-            torchGasLpm: 0,
-            purgeGasLpm: hybridFillPurgeActive ? purgeVal : 0,
-          },
-          {
-            id: 5,
-            label: t('process.auto_main_high_dep', 'Main Body Fill (High Deposition)'),
-            process: 'SMAW',
-            diameterMm: 4.00,
-            lengthMm: 450,
-            passesCount: 6,
-            torchGasLpm: 0,
-            purgeGasLpm: hybridFillPurgeActive ? purgeVal : 0,
-          },
-          {
-            id: 6,
-            label: t('process.auto_cap_cover', 'Cap Cover (Stringers)'),
-            process: 'SMAW',
-            diameterMm: 3.25,
-            lengthMm: 350,
-            passesCount: 6,
-            torchGasLpm: 0,
-            purgeGasLpm: hybridFillPurgeActive ? purgeVal : 0,
-          },
-        ];
+        if (parsedWallThk > 0 && parsedWallThk <= 8.5) {
+          suggested = [
+            {
+              id: 1,
+              label: t('schedule.layer_root', 'Root Pass'),
+              process: 'GTAW',
+              diameterMm: selTigDia,
+              lengthMm: 1000,
+              passesCount: 1,
+              torchGasLpm: torchVal,
+              purgeGasLpm: hybridGtawPurgeActive ? purgeVal : 0,
+            },
+            {
+              id: 2,
+              label: t('schedule.layer_hot', 'Hot Pass'),
+              process: 'GTAW',
+              diameterMm: selTigDia,
+              lengthMm: 1000,
+              passesCount: 1,
+              torchGasLpm: torchVal,
+              purgeGasLpm: hybridGtawPurgeActive ? purgeVal : 0,
+            },
+            {
+              id: 3,
+              label: t('schedule.layer_groove_fill', 'Groove Fill'),
+              process: 'SMAW',
+              diameterMm: selSmawDia,
+              lengthMm: activeSmawLen,
+              passesCount: 1,
+              torchGasLpm: 0,
+              purgeGasLpm: hybridFillPurgeActive ? purgeVal : 0,
+            },
+            {
+              id: 4,
+              label: t('process.auto_cap_cover', 'Cap Cover (Stringers)'),
+              process: 'SMAW',
+              diameterMm: selSmawDia,
+              lengthMm: activeSmawLen,
+              passesCount: 3,
+              torchGasLpm: 0,
+              purgeGasLpm: hybridFillPurgeActive ? purgeVal : 0,
+            },
+          ];
+        } else if (parsedWallThk > 8.5 && parsedWallThk <= 16.0) {
+          suggested = [
+            {
+              id: 1,
+              label: t('schedule.layer_root', 'Root Pass'),
+              process: 'GTAW',
+              diameterMm: selTigDia,
+              lengthMm: 1000,
+              passesCount: 1,
+              torchGasLpm: torchVal,
+              purgeGasLpm: hybridGtawPurgeActive ? purgeVal : 0,
+            },
+            {
+              id: 2,
+              label: t('schedule.layer_hot', 'Hot Pass'),
+              process: 'GTAW',
+              diameterMm: selTigDia,
+              lengthMm: 1000,
+              passesCount: 1,
+              torchGasLpm: torchVal,
+              purgeGasLpm: hybridGtawPurgeActive ? purgeVal : 0,
+            },
+            {
+              id: 3,
+              label: t('process.auto_main_fill', 'Main Body Fill'),
+              process: 'SMAW',
+              diameterMm: 3.25,
+              lengthMm: 350,
+              passesCount: 4,
+              torchGasLpm: 0,
+              purgeGasLpm: hybridFillPurgeActive ? purgeVal : 0,
+            },
+            {
+              id: 4,
+              label: t('process.auto_cap_cover', 'Cap Cover (Stringers)'),
+              process: 'SMAW',
+              diameterMm: 3.25,
+              lengthMm: 350,
+              passesCount: 3,
+              torchGasLpm: 0,
+              purgeGasLpm: hybridFillPurgeActive ? purgeVal : 0,
+            },
+          ];
+        } else {
+          suggested = [
+            {
+              id: 1,
+              label: t('schedule.layer_root', 'Root Pass'),
+              process: 'GTAW',
+              diameterMm: selTigDia,
+              lengthMm: 1000,
+              passesCount: 1,
+              torchGasLpm: torchVal,
+              purgeGasLpm: hybridGtawPurgeActive ? purgeVal : 0,
+            },
+            {
+              id: 2,
+              label: t('schedule.layer_hot', 'Hot Pass'),
+              process: 'GTAW',
+              diameterMm: selTigDia,
+              lengthMm: 1000,
+              passesCount: 1,
+              torchGasLpm: torchVal,
+              purgeGasLpm: hybridGtawPurgeActive ? purgeVal : 0,
+            },
+            {
+              id: 3,
+              label: t('process.auto_root_layer_fill', 'Root-Layer Fill'),
+              process: 'SMAW',
+              diameterMm: 2.50,
+              lengthMm: 300,
+              passesCount: 2,
+              torchGasLpm: 0,
+              purgeGasLpm: hybridFillPurgeActive ? purgeVal : 0,
+            },
+            {
+              id: 4,
+              label: t('process.auto_intermediate_fill', 'Intermediate Fill'),
+              process: 'SMAW',
+              diameterMm: 3.25,
+              lengthMm: 350,
+              passesCount: 4,
+              torchGasLpm: 0,
+              purgeGasLpm: hybridFillPurgeActive ? purgeVal : 0,
+            },
+            {
+              id: 5,
+              label: t('process.auto_main_high_dep', 'Main Body Fill (High Deposition)'),
+              process: 'SMAW',
+              diameterMm: 4.00,
+              lengthMm: 450,
+              passesCount: 6,
+              torchGasLpm: 0,
+              purgeGasLpm: hybridFillPurgeActive ? purgeVal : 0,
+            },
+            {
+              id: 6,
+              label: t('process.auto_cap_cover', 'Cap Cover (Stringers)'),
+              process: 'SMAW',
+              diameterMm: 3.25,
+              lengthMm: 350,
+              passesCount: 6,
+              torchGasLpm: 0,
+              purgeGasLpm: hybridFillPurgeActive ? purgeVal : 0,
+            },
+          ];
+        }
       } else {
         const fillProc = (fillProcess || 'FCAW').toUpperCase();
         const fillDia = fillProc === 'SAW' ? selSawDia : (fillProc === 'FCAW' ? selFcawDia : selGmawDia);
@@ -719,10 +771,10 @@ export default function ProcessConfigCard({
                   onChange={(e) => setTigWireDiaMm(e.target.value)}
                   className="fluent-select text-xs font-medium"
                 >
-                  <option value="1.6">Ø 1.6 mm (15.8 g)</option>
-                  <option value="2.0">Ø 2.0 mm (24.6 g)</option>
-                  <option value="2.4">Ø 2.4 mm (35.5 g)</option>
-                  <option value="3.2">Ø 3.2 mm (63.1 g)</option>
+                  <option value="1.6">{formatTigOptionLabel(1.6)}</option>
+                  <option value="2.0">{formatTigOptionLabel(2.0)}</option>
+                  <option value="2.4">{formatTigOptionLabel(2.4)}</option>
+                  <option value="3.2">{formatTigOptionLabel(3.2)}</option>
                 </select>
               </div>
             )}
@@ -737,11 +789,11 @@ export default function ProcessConfigCard({
                   onChange={(e) => setSmawElectrodeDiaMm(e.target.value)}
                   className="fluent-select text-xs font-medium"
                 >
-                  <option value="2.00">Ø 2.00 mm (7.5 g)</option>
-                  <option value="2.50">Ø 2.50 mm (13.8 g)</option>
-                  <option value="3.25">Ø 3.25 mm (22.5 g)</option>
-                  <option value="4.00">Ø 4.00 mm (44.0 g)</option>
-                  <option value="5.00">Ø 5.00 mm (68.0 g)</option>
+                  <option value="2.00">{formatSmawOptionLabel(2.00)}</option>
+                  <option value="2.50">{formatSmawOptionLabel(2.50)}</option>
+                  <option value="3.25">{formatSmawOptionLabel(3.25)}</option>
+                  <option value="4.00">{formatSmawOptionLabel(4.00)}</option>
+                  <option value="5.00">{formatSmawOptionLabel(5.00)}</option>
                 </select>
               </div>
             )}

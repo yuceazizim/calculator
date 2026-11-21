@@ -141,7 +141,7 @@ export function calculateWeldGeometry(params) {
       (g * rootH) + 2.0 * ((rootBevelH / 2.0) * (rootBevelH / 2.0) * Math.tan(angleRad))
     );
 
-    const hotTopH = Math.min(t * 0.70, rootH + 2.5);
+    const hotTopH = Math.min(t * 0.62, rootH + 2.0);
     const hotBevelH = Math.max(0, hotTopH - f);
     const areaRootPlusHot = Math.min(
       areaGrooveBody * 0.85,
@@ -181,7 +181,7 @@ export function calculateWeldGeometry(params) {
       areaRootPart = areaGrooveBody;
       areaFill = 0;
     } else {
-      // Medium & Heavy Wall: Calibrated 5.0-5.5mm GTAW Root + Hot deposit height
+      // Medium & Heavy Wall: Calibrated GTAW Root (~2.6mm) + Hot (~1.8-2.0mm) deposit height
       const rootH = Math.min(t * 0.42, Math.max(2.5, f + 1.1));
       const rootBevelH = Math.max(0, rootH - f);
       areaRootOnly =
@@ -189,7 +189,7 @@ export function calculateWeldGeometry(params) {
         (rootBevelH * rootBevelH * Math.tan(angleRad)) +
         areaRootPenetration;
 
-      const hotTopH = Math.min(t * 0.68, rootH + 2.5);
+      const hotTopH = Math.min(t * 0.62, rootH + 2.0);
       const hotBevelH = Math.max(0, hotTopH - f);
       const areaRootPlusHot =
         (g * hotTopH) +

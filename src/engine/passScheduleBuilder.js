@@ -3,9 +3,10 @@
  * Calculation Engine Module 3: ASME WPS Pass & Layer Schedule Builder
  * Features:
  *   - Geometry-Driven 4-Layer Automatic Sequencing (Root, Hot, Fill & Cap)
- *   - ASME QW-410 (3xd) Cap Stringer Width & Area Capacity Rules
- *   - Calibrated Heavy-Wall SMAW Narrow Root Fill & Uphill Weave Bead Area
- *   - Multi-Process Custom Stepped Pass Stacking Mode
+ *   - ASME QW-410 Stringer Cap Width & Area Capacity Rules
+ *   - Calibrated Heavy-Wall SMAW Narrow Root Fill (t >= 25 mm) & Uphill Weave Bead Area
+ *   - SAW 3-Pass GTAW Buffer Protection (TSGI-PQR-CS-025)
+ *   - Multi-Process Custom Stepped Pass Stacking Mode (Physical Cap Share Enforcement)
  *   - Per-Layer Torch & Backing/Purge Gas Flow Resolution
  *   - Smart Auto-Suggest Generator synced with Physical Groove Geometry
  * Governing Document: WCC-SPEC-2026-REV01
@@ -109,17 +110,26 @@ export function buildGasPolicyContext({
 }
 
 /**
- * Compute required cap stringer pass count respecting ASME 3xd width limit & area capacity
+ * Compute required cap stringer pass count respecting ASME stringer widths & area capacity
+ * - Continuous wire processes (GMAW, FCAW, SAW) lay wider weld pools (~9-12 mm)
+ * - Stick/TIG stringers (SMAW, GTAW) lay ~2.0 * electrode/wire diameter (SS-004, AS-005)
  */
 function computeCapPassCount({ capTotalWidth, areaCap, capProc, capDia, weldGeometry }) {
   const nominalBead = getNominalBeadArea(capProc, capDia);
-  // Continuous thin-wire processes (GMAW/FCAW) lay a ~7.5-9.5mm weld pool despite 0.8-1.6mm wire dia
-  const wireBeadWidth = ['GMAW', 'FCAW'].includes(capProc)
-    ? Math.max(capDia * 2.8, Math.sqrt(nominalBead * 2.5))
-    : capDia * 2.8;
+  let wireBeadWidth;
+  if (['GMAW', 'FCAW', 'SAW'].includes(capProc)) {
+    const poolMultiplier = capProc === 'SAW' ? 4.0 : 2.5;
+    wireBeadWidth = Math.max(capDia * 2.8, Math.sqrt(nominalBead * poolMultiplier));
+  } else {
+    wireBeadWidth = capDia * 2.0;
+  }
+
   const effectiveMaxBeadWidth = Math.max(1.5, wireBeadWidth);
   const widthBasedRuns = Math.max(1, Math.ceil((capTotalWidth || effectiveMaxBeadWidth) / effectiveMaxBeadWidth));
-  const singleSideRuns = Math.min(12, Math.max(widthBasedRuns, Math.ceil((areaCap / (weldGeometry === 'double_v' ? 2.0 : 1.0)) / (nominalBead * 1.35))));
+  const singleSideRuns = Math.min(
+    12,
+    Math.max(widthBasedRuns, Math.ceil((areaCap / (weldGeometry === 'double_v' ? 2.0 : 1.0)) / (nominalBead * 1.35)))
+  );
   return weldGeometry === 'double_v' ? singleSideRuns * 2 : singleSideRuns;
 }
 
@@ -152,6 +162,7 @@ function buildAutomaticSchedule({
     passesCount,
     areaShareMm2,
     isRootPass,
+    isCapPass = false,
     isRootOrHotLayer,
   }) => {
     const pCount = Math.max(1, passesCount);
@@ -160,7 +171,15 @@ function buildAutomaticSchedule({
     const netWeightGrams = Math.round(rawNetGrams * 10) / 10;
     const { fillerClass, unit } = getProcessFillerMeta(proc, metallurgy);
 
-    const speed = getProcessTravelSpeed(proc, dia, isRootPass, speedCtx);
+    const speed = getProcessTravelSpeed(proc, dia, isRootPass, {
+      ...speedCtx,
+      isStainless: metallurgy.isStainless,
+      isDuplex: metallurgy.isDuplex,
+      isNickelAlloy: metallurgy.isNickelAlloy,
+      isP9: metallurgy.isP9,
+      isP11: metallurgy.isP11,
+      isCapPass,
+    });
     const heatMetrics = getHeatInputMetrics(proc, dia, speed, isRootPass, metallurgy.isNickelAlloy);
     const rawArcMin = (geom.seamLengthMm / speed) * pCount;
 
@@ -251,14 +270,30 @@ function buildAutomaticSchedule({
     });
   }
 
-  // 2C. Groove Fill (Calibrated against PQR AS-002 / CS-005A for heavy walls)
-  if (geom.areaFill > 0.5) {
-    const isHeavySmawButt = fProc === 'SMAW' && geom.t > 15.0 && gasCtx.isGrooveButt;
+  // 2B-2. SAW Backing Buffer Pass: Deposit 3rd GTAW pass (~6mm total TIG thickness) before high-amperage SAW
+  let remainingFillArea = geom.areaFill;
+  if (rProc === 'GTAW' && fProc === 'SAW' && geom.t >= 12.0 && remainingFillArea > 25.0) {
+    const tigBufferArea = Math.min(remainingFillArea * 0.25, getNominalBeadArea('GTAW', rDia) * 1.4);
+    remainingFillArea = Math.max(0, remainingFillArea - tigBufferArea);
+    pushLayer({
+      layerName: 'Groove Fill (TIG Buffer)',
+      proc: 'GTAW',
+      dia: rDia,
+      len: rLen,
+      passesCount: 1,
+      areaShareMm2: tigBufferArea,
+      isRootPass: false,
+      isRootOrHotLayer: false,
+    });
+  }
+
+  // 2C. Groove Fill (Deep Fill Ø2.50mm reserved for heavy walls t >= 25mm per AS-002 vs AS-005)
+  if (remainingFillArea > 0.5) {
+    const isHeavySmawButt = fProc === 'SMAW' && geom.t >= 25.0 && gasCtx.isGrooveButt;
     if (isHeavySmawButt) {
-      // Narrow root deep fill: capped to ~1-2 passes of Ø 2.50mm regardless of wall thickness
       const deepBead = getNominalBeadArea('SMAW', 2.50);
-      const deepArea = Math.min(geom.areaFill * 0.12, deepBead * 1.35);
-      const mainArea = Math.max(0, geom.areaFill - deepArea);
+      const deepArea = Math.min(remainingFillArea * 0.12, deepBead * 1.35);
+      const mainArea = Math.max(0, remainingFillArea - deepArea);
       const deepRuns = Math.max(1, Math.min(2, Math.round(deepArea / deepBead)));
       const deepLen = Math.min(350.0, standardElectrodeLength);
 
@@ -273,7 +308,6 @@ function buildAutomaticSchedule({
         isRootOrHotLayer: false,
       });
 
-      // Pure geometric cross-section pass count with uphill weave factor for thick sections
       const mainNominalBead = getNominalBeadArea('SMAW', fDia);
       const weaveFactor =
         isVerticalUphill && geom.t >= 25.0 ? (geom.t >= 45.0 ? 1.65 : 1.20) : 1.0;
@@ -292,21 +326,21 @@ function buildAutomaticSchedule({
       });
     } else {
       const fillNominalBead = getNominalBeadArea(fProc, fDia);
-      const fillRuns = Math.max(1, Math.round(geom.areaFill / fillNominalBead));
+      const fillRuns = Math.max(1, Math.round(remainingFillArea / fillNominalBead));
       pushLayer({
         layerName: 'Groove Fill',
         proc: fProc,
         dia: fDia,
         len: fLen,
         passesCount: fillRuns,
-        areaShareMm2: geom.areaFill,
+        areaShareMm2: remainingFillArea,
         isRootPass: false,
         isRootOrHotLayer: false,
       });
     }
   }
 
-  // 2D. Cap Cover (Actual parabolic reinforcement area + ASME 3xd stringer count)
+  // 2D. Cap Cover (Actual parabolic reinforcement area + ASME stringer count)
   if (geom.areaCap > 0.2) {
     const capRuns = computeCapPassCount({
       capTotalWidth: geom.capTotalWidth,
@@ -324,6 +358,7 @@ function buildAutomaticSchedule({
       passesCount: capRuns,
       areaShareMm2: geom.areaCap,
       isRootPass: false,
+      isCapPass: true,
       isRootOrHotLayer: false,
     });
   }
@@ -332,7 +367,16 @@ function buildAutomaticSchedule({
 }
 
 /**
+ * Detect whether a custom layer label denotes a Cap / Cover layer
+ */
+function isCapLayerLabel(label) {
+  const s = (label || '').toLowerCase();
+  return s.includes('cap') || s.includes('cover') || s.includes('kapak');
+}
+
+/**
  * Build Custom Stepped Pass Schedule from user-defined layers
+ * Physically bounds Cap/Cover layers to geom.areaCap so stringer count does not steal groove body metal
  */
 function buildCustomSchedule({
   customPassGroups,
@@ -347,9 +391,10 @@ function buildCustomSchedule({
   const schedule = [];
   let currentPassIndex = 1;
 
-  let sumRelativeWeight = 0;
-  let sumGtawNominalArea = 0;
-  let sumFillNominalArea = 0;
+  let sumCapNominalArea = 0;
+  let sumBodyNominalArea = 0;
+  let sumBodyGtawNominalArea = 0;
+  let sumBodyFillNominalArea = 0;
   let allCustomAreGtaw = true;
 
   customPassGroups.forEach((grp) => {
@@ -358,24 +403,48 @@ function buildCustomSchedule({
     const dia = parseFloat(grp.diameterMm) || selectedDiameters[proc] || 3.25;
     const beadArea = getNominalBeadArea(proc, dia);
     const layerNominalArea = pCount * beadArea;
+    const isCap = isCapLayerLabel(grp.label);
 
-    sumRelativeWeight += layerNominalArea;
-    if (proc === 'GTAW') {
-      sumGtawNominalArea += layerNominalArea;
-    } else {
+    if (proc !== 'GTAW') {
       allCustomAreGtaw = false;
-      sumFillNominalArea += layerNominalArea;
+    }
+
+    if (isCap) {
+      sumCapNominalArea += layerNominalArea;
+    } else {
+      sumBodyNominalArea += layerNominalArea;
+      if (proc === 'GTAW') {
+        sumBodyGtawNominalArea += layerNominalArea;
+      } else {
+        sumBodyFillNominalArea += layerNominalArea;
+      }
     }
   });
 
+  const hasPhysicalCapSplit =
+    gasCtx.isGrooveButt &&
+    geom.areaCap > 0.2 &&
+    sumCapNominalArea > 0 &&
+    sumBodyNominalArea > 0;
+
+  const safeTotalArea = geom.totalCrossSectionAreaMm2 || 1.0;
+  const physicalCapShare = hasPhysicalCapSplit
+    ? Math.min(0.32, Math.max(0.12, geom.areaCap / safeTotalArea))
+    : 0;
+  const bodyTotalShare = 1.0 - physicalCapShare;
+
+  const grooveBodyArea = hasPhysicalCapSplit
+    ? Math.max(1.0, safeTotalArea - geom.areaCap)
+    : safeTotalArea;
+
   const isHybridSparseGroove =
     gasCtx.isGrooveButt &&
-    sumGtawNominalArea > 0 &&
-    sumFillNominalArea > 0 &&
-    sumRelativeWeight < geom.totalCrossSectionAreaMm2;
+    sumBodyGtawNominalArea > 0 &&
+    sumBodyFillNominalArea > 0 &&
+    sumBodyNominalArea < grooveBodyArea;
 
-  const cappedGtawTotalShare = isHybridSparseGroove
-    ? Math.min(0.35, sumGtawNominalArea / (geom.totalCrossSectionAreaMm2 || 1.0))
+  const cappedGtawBodyFraction = isHybridSparseGroove
+    ? Math.min(0.35, sumBodyGtawNominalArea / grooveBodyArea)
     : 0;
 
   customPassGroups.forEach((grp, idx) => {
@@ -392,26 +461,42 @@ function buildCustomSchedule({
 
     const beadArea = getNominalBeadArea(proc, dia);
     const layerNominalArea = pCount * beadArea;
+    const isCap = isCapLayerLabel(grp.label);
 
-    let grpRatio = layerNominalArea / (sumRelativeWeight || 1.0);
-    if (isHybridSparseGroove) {
-      if (proc === 'GTAW') {
-        grpRatio = (layerNominalArea / sumGtawNominalArea) * cappedGtawTotalShare;
-      } else {
-        grpRatio = (layerNominalArea / sumFillNominalArea) * (1.0 - cappedGtawTotalShare);
-      }
+    let grpRatio = 0;
+    if (hasPhysicalCapSplit && isCap) {
+      grpRatio = (layerNominalArea / sumCapNominalArea) * physicalCapShare;
+    } else if (isHybridSparseGroove) {
+      const bodyFrac =
+        proc === 'GTAW'
+          ? (layerNominalArea / sumBodyGtawNominalArea) * cappedGtawBodyFraction
+          : (layerNominalArea / sumBodyFillNominalArea) * (1.0 - cappedGtawBodyFraction);
+      grpRatio = bodyFrac * bodyTotalShare;
+    } else if (hasPhysicalCapSplit) {
+      grpRatio = (layerNominalArea / sumBodyNominalArea) * bodyTotalShare;
+    } else {
+      const totalNominal = sumBodyNominalArea + sumCapNominalArea || 1.0;
+      grpRatio = layerNominalArea / totalNominal;
     }
 
     const rawNetGrams = geom.totalNetWeightGrams * grpRatio;
     const grpNetGrams = Math.round(rawNetGrams * 10) / 10;
     const { fillerClass, unit } = getProcessFillerMeta(proc, metallurgy);
 
+    const labelLower = (grp.label || '').toLowerCase();
     const isRoot =
-      idx === 0 &&
-      (grp.label?.toLowerCase().includes('root') || grp.label?.toLowerCase().includes('kök'));
+      idx === 0 && (labelLower.includes('root') || labelLower.includes('kök'));
     const isRootOrHotLayer = currentPassIndex <= 2;
 
-    const speed = getProcessTravelSpeed(proc, dia, isRoot, speedCtx);
+    const speed = getProcessTravelSpeed(proc, dia, isRoot, {
+      ...speedCtx,
+      isStainless: metallurgy.isStainless,
+      isDuplex: metallurgy.isDuplex,
+      isNickelAlloy: metallurgy.isNickelAlloy,
+      isP9: metallurgy.isP9,
+      isP11: metallurgy.isP11,
+      isCapPass: isCap,
+    });
     const heatMetrics = getHeatInputMetrics(proc, dia, speed, isRoot, metallurgy.isNickelAlloy);
     const rawArcMin = (geom.seamLengthMm / speed) * pCount;
 
