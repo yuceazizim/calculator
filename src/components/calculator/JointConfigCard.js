@@ -2,7 +2,8 @@
  * Welding Consumable Calculator (WCC)
  * Calculator Component: JointConfigCard
  * Windows 11 Fluent Joint Configuration, Live Cross-Section SVG Visualizer,
- * Custom Theme-Aware Pipe Picker Modal (Mobile Edge-to-Edge) & Batch Joint Quantity Multiplier
+ * Custom Theme-Aware Pipe Picker Modal (Mobile Edge-to-Edge), FluentSelect Pickers
+ * & Batch Joint Quantity Multiplier
  * Supports: Single-V Butt, Double-V (X-Joint), Socket & Fillet Welds for Pipes and Plates
  * Mobile-First: Edge-to-Edge Flush Layout & Multi-Language Safe Wrapping (leading-tight)
  * Standards: ASME B16.25 • ASME B16.11 • AWS D1.1 • EN ISO 9692-1
@@ -11,6 +12,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../../i18n.js';
+import FluentSelect from '../common/FluentSelect.js';
 import {
   Layers,
   Info,
@@ -59,6 +61,7 @@ export default function JointConfigCard({
   // Custom Fluent Pipe Picker Modal State
   const [isPipeModalOpen, setIsPipeModalOpen] = useState(false);
   const [pipeSearch, setPipeSearch] = useState('');
+  const [selectedPresetCode, setSelectedPresetCode] = useState('');
 
   const selectedPipe = useMemo(
     () => pipes.find((p) => p.id === selectedPipeId) || null,
@@ -76,6 +79,40 @@ export default function JointConfigCard({
       (p.standard || '').toLowerCase().includes(q)
     ));
   }, [pipes, pipeSearch]);
+
+  const groovePresetOptions = useMemo(() => {
+    const base = [
+      {
+        value: '',
+        label: t('joint.preset_custom', '-- Custom Groove Angles --'),
+      },
+    ];
+    if (Array.isArray(joints)) {
+      joints.forEach((j) => {
+        base.push({
+          value: j.joint_code,
+          label: `${j.joint_name} (θ=${j.default_bevel_angle_deg}°, g=${j.default_root_gap_mm}mm, f=${j.default_root_face_mm}mm)`,
+        });
+      });
+    }
+    return base;
+  }, [joints, t]);
+
+  const filletBasisOptions = useMemo(
+    () => [
+      { value: 'throat', label: t('joint.fillet_throat_opt', 'Throat Thickness (a)') },
+      { value: 'leg', label: t('joint.fillet_leg_opt', 'Leg Length (z / w)') },
+    ],
+    [t]
+  );
+
+  const filletSidesOptions = useMemo(
+    () => [
+      { value: 'single', label: t('joint.fillet_single', 'Single Fillet') },
+      { value: 'double', label: t('joint.fillet_double', 'Double Fillet (T Joint)') },
+    ],
+    [t]
+  );
 
   // Escape key & body scroll lock when Pipe Picker Modal is open
   useEffect(() => {
@@ -105,6 +142,7 @@ export default function JointConfigCard({
 
   // Apply standard groove preset from catalog
   const handleGroovePresetChange = (jointCode) => {
+    setSelectedPresetCode(jointCode || '');
     if (!jointCode || !Array.isArray(joints)) return;
     const preset = joints.find((j) => j.joint_code === jointCode);
     if (!preset) return;
@@ -640,18 +678,14 @@ export default function JointConfigCard({
                 <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
                   {t('joint.preset_label', 'Standard Groove Preset')}
                 </label>
-                <select
-                  defaultValue=""
-                  onChange={(e) => handleGroovePresetChange(e.target.value)}
-                  className="fluent-select text-xs font-medium"
-                >
-                  <option value="">{t('joint.preset_custom', '-- Custom Groove Angles --')}</option>
-                  {joints.map((j) => (
-                    <option key={j.id || j.joint_code} value={j.joint_code}>
-                      {j.joint_name} (θ={j.default_bevel_angle_deg}°, g={j.default_root_gap_mm}mm, f={j.default_root_face_mm}mm)
-                    </option>
-                  ))}
-                </select>
+                <FluentSelect
+                  value={selectedPresetCode}
+                  onChange={handleGroovePresetChange}
+                  options={groovePresetOptions}
+                  label={t('joint.preset_label', 'Standard Groove Preset')}
+                  placeholder={t('joint.preset_custom', '-- Custom Groove Angles --')}
+                  className="text-xs font-medium"
+                />
               </div>
             )}
 
@@ -664,7 +698,10 @@ export default function JointConfigCard({
                   type="number"
                   step="0.5"
                   value={bevelAngleDeg}
-                  onChange={(e) => setBevelAngleDeg(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedPresetCode('');
+                    setBevelAngleDeg(e.target.value);
+                  }}
                   className="fluent-input text-xs"
                   placeholder="37.5"
                 />
@@ -678,7 +715,10 @@ export default function JointConfigCard({
                   type="number"
                   step="0.1"
                   value={rootGapMm}
-                  onChange={(e) => setRootGapMm(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedPresetCode('');
+                    setRootGapMm(e.target.value);
+                  }}
                   className="fluent-input text-xs"
                   placeholder="3.0"
                 />
@@ -692,7 +732,10 @@ export default function JointConfigCard({
                   type="number"
                   step="0.1"
                   value={rootFaceMm}
-                  onChange={(e) => setRootFaceMm(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedPresetCode('');
+                    setRootFaceMm(e.target.value);
+                  }}
                   className="fluent-input text-xs"
                   placeholder="1.5"
                 />
@@ -706,7 +749,10 @@ export default function JointConfigCard({
                   type="number"
                   step="0.1"
                   value={capHeightMm}
-                  onChange={(e) => setCapHeightMm(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedPresetCode('');
+                    setCapHeightMm(e.target.value);
+                  }}
                   className="fluent-input text-xs"
                   placeholder="1.5"
                 />
@@ -723,14 +769,13 @@ export default function JointConfigCard({
                 <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
                   {t('joint.fillet_basis', 'Dimension Basis')}
                 </label>
-                <select
+                <FluentSelect
                   value={filletSizeType}
-                  onChange={(e) => setFilletSizeType(e.target.value)}
-                  className="fluent-select text-xs font-medium"
-                >
-                  <option value="throat">{t('joint.fillet_throat_opt', 'Throat Thickness (a)')}</option>
-                  <option value="leg">{t('joint.fillet_leg_opt', 'Leg Length (z / w)')}</option>
-                </select>
+                  onChange={(val) => setFilletSizeType(val)}
+                  options={filletBasisOptions}
+                  label={t('joint.fillet_basis', 'Dimension Basis')}
+                  className="text-xs font-medium"
+                />
               </div>
 
               <div>
@@ -754,14 +799,13 @@ export default function JointConfigCard({
                 <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
                   {t('joint.fillet_sides', 'Fillet Sides')}
                 </label>
-                <select
+                <FluentSelect
                   value={filletSides}
-                  onChange={(e) => setFilletSides(e.target.value)}
-                  className="fluent-select text-xs font-medium"
-                >
-                  <option value="single">{t('joint.fillet_single', 'Single Fillet')}</option>
-                  <option value="double">{t('joint.fillet_double', 'Double Fillet (T Joint)')}</option>
-                </select>
+                  onChange={(val) => setFilletSides(val)}
+                  options={filletSidesOptions}
+                  label={t('joint.fillet_sides', 'Fillet Sides')}
+                  className="text-xs font-medium"
+                />
               </div>
             </div>
             <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-2">

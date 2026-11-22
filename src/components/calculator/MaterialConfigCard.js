@@ -7,8 +7,9 @@
  * Pure JavaScript (.js only)
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from '../../i18n.js';
+import FluentSelect from '../common/FluentSelect.js';
 import { Shield, Sparkles } from 'lucide-react';
 
 export default function MaterialConfigCard({
@@ -23,6 +24,15 @@ export default function MaterialConfigCard({
   setIsFluxCoredTig,
 }) {
   const { t } = useTranslation();
+
+  const materialOptions = useMemo(
+    () =>
+      (materials || []).map((mat) => ({
+        value: mat.id,
+        label: `${mat.material_name} (${mat.material_group}) - P-No: ${mat.p_no}`,
+      })),
+    [materials]
+  );
 
   return (
     <div className="fluent-card rounded-none sm:rounded-fluent-lg border-x-0 sm:border-x border-y border-black/[0.08] dark:border-white/[0.08] p-3.5 sm:p-6 transition-all duration-200">
@@ -45,25 +55,19 @@ export default function MaterialConfigCard({
       {/* 2. Material Dropdown Selection and Physical Density */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
         
-        {/* Base Material Dropdown */}
+        {/* Base Material Fluent Picker */}
         <div className="sm:col-span-2">
           <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
             {t('material.select', 'Base Material')}
           </label>
-          <select
+          <FluentSelect
             value={selectedMaterialId || ''}
-            onChange={(e) => handleMaterialSelect(e.target.value)}
-            className="fluent-select text-xs font-medium"
-          >
-            <option value="" disabled>
-              {t('material.select_placeholder', '-- Select Qualified Base Material --')}
-            </option>
-            {materials.map((mat) => (
-              <option key={mat.id} value={mat.id}>
-                {mat.material_name} ({mat.material_group}) - P-No: {mat.p_no}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => handleMaterialSelect(val)}
+            options={materialOptions}
+            label={t('material.select', 'Base Material')}
+            placeholder={t('material.select_placeholder', '-- Select Qualified Base Material --')}
+            className="text-xs font-medium"
+          />
         </div>
 
         {/* Physical Specific Gravity / Density */}
@@ -93,7 +97,7 @@ export default function MaterialConfigCard({
             onChange={(e) => setRequiresBackingGas(e.target.checked)}
             className="w-4 h-4 rounded text-fluent-accent focus:ring-fluent-accent/40 cursor-pointer"
           />
-          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-tight">
             {t('material.backing_gas_required', 'Backing Gas (Purging) Mandatory')}
           </span>
         </label>
@@ -109,7 +113,7 @@ export default function MaterialConfigCard({
             />
             <div className="flex items-center gap-1.5 min-w-0">
               <Sparkles className="w-3.5 h-3.5 text-fluent-accent dark:text-fluent-accent-dark flex-shrink-0" />
-              <span className="text-xs font-bold text-blue-950 dark:text-blue-200 truncate">
+              <span className="text-xs font-bold text-blue-950 dark:text-blue-200 leading-tight">
                 {t('material.flux_cored_tig', 'Using Flux-Cored TIG Rod (Kobelco TG-X)')}
               </span>
             </div>

@@ -2,15 +2,16 @@
  * Welding Consumable Calculator (WCC)
  * Calculator Component: ProcessConfigCard
  * Windows 11 Fluent Process Partitioning, Welding Position (1G/2G/3G-5G-6G/4G), Travel Direction,
- * Shielding & Purge Gas Controls, Cylinder Spec, Multi-Process Consumable Sizing (GTAW/SMAW/GMAW/FCAW/SAW)
- * & Per-Pass Diameter + Length + Gas Stacker
- * Mobile-First: Edge-to-Edge Flush Layout (rounded-none on mobile, rounded on desktop)
+ * Shielding & Purge Gas Controls, Cylinder Spec, Multi-Process Consumable Sizing (GTAW/SMAW/GMAW/FCAW/SAW),
+ * Theme-Aware FluentSelect Pickers & Per-Pass Diameter + Length + Gas Stacker
+ * Mobile-First: Edge-to-Edge Flush Layout & Multi-Language Safe Wrapping (leading-tight)
  * Standards: ASME Sec. IX • AWS D1.1 (Structural Steel) • EN 1090
  * Pure JavaScript (.js only)
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from '../../i18n.js';
+import FluentSelect from '../common/FluentSelect.js';
 import {
   isGasShieldedProcess,
   getDefaultLengthMm,
@@ -120,15 +121,159 @@ export default function ProcessConfigCard({
     return Number.isFinite(val) && val >= 0 ? val : 10.0;
   };
 
-  const formatTigOptionLabel = (dia) => {
-    const rawGrams = getRawUnitWeightGrams('GTAW', dia, 1000, { isFluxCoredTig });
-    return `Ø ${dia.toFixed(1)} mm (${rawGrams.toFixed(1)} g)`;
-  };
+  const rootProcessOptions = useMemo(
+    () => [
+      { value: 'GTAW', label: 'GTAW (TIG / ISO 141)' },
+      { value: 'SMAW', label: 'SMAW (Stick MMA / ISO 111)' },
+      { value: 'GMAW', label: 'GMAW (MIG/MAG / ISO 135)' },
+      { value: 'FCAW', label: 'FCAW (GSFCAW Flux-Cored / ISO 136)' },
+    ],
+    []
+  );
 
-  const formatSmawOptionLabel = (dia) => {
-    const netDepositGrams = getUnitDepositWeightGrams('SMAW', dia, activeSmawLen, {});
-    return `Ø ${dia.toFixed(2)} mm (~${netDepositGrams.toFixed(1)} g)`;
-  };
+  const fillProcessOptions = useMemo(
+    () => [
+      { value: 'SMAW', label: 'SMAW (Stick MMA / ISO 111)' },
+      { value: 'GTAW', label: 'GTAW (Full TIG / ISO 141)' },
+      { value: 'FCAW', label: 'FCAW (GSFCAW Flux-Cored / ISO 136)' },
+      { value: 'SAW', label: 'SAW (Submerged Arc / ISO 121)' },
+      { value: 'GMAW', label: 'GMAW (MIG/MAG / ISO 135)' },
+    ],
+    []
+  );
+
+  const weldPositionOptions = useMemo(
+    () => [
+      {
+        value: 'flat',
+        label: isPlateMode
+          ? (isFillet ? t('process.pos_1f_plate', '1F (Flat Fillet • 1.20×)') : t('process.pos_1g_plate', '1G (Flat • 1.20×)'))
+          : (isFillet ? t('process.pos_1f_pipe', '1F (Rotated Pipe Fillet • 1.20×)') : t('process.pos_1g_pipe', '1G (Rotated Pipe • 1.20×)')),
+      },
+      {
+        value: 'horizontal',
+        label: isFillet
+          ? t('process.pos_2f', '2F (Horizontal Fillet • 1.05×)')
+          : t('process.pos_2g', '2G (Horizontal • 1.05×)'),
+      },
+      {
+        value: 'vertical_fixed',
+        label: isPlateMode
+          ? (isFillet ? t('process.pos_3f_plate', '3F (Vertical Fillet • 1.00×)') : t('process.pos_3g_plate', '3G (Vertical • 1.00×)'))
+          : t('process.pos_5g_6g_pipe', '5G / 6G (Fixed Pipe • 1.00×)'),
+      },
+      {
+        value: 'overhead',
+        label: isFillet
+          ? t('process.pos_4f', '4F (Overhead Fillet • 0.90×)')
+          : t('process.pos_4g', '4G (Overhead • 0.90×)'),
+      },
+    ],
+    [isPlateMode, isFillet, t]
+  );
+
+  const cylinderOptions = useMemo(
+    () => [
+      { value: '6.0', label: t('process.cyl_150bar', '50L / 150 Bar (6,000 L)') },
+      { value: '10.0', label: t('process.cyl_200bar', '50L / 200 Bar (10,000 L)') },
+    ],
+    [t]
+  );
+
+  const purgeStrategyOptions = useMemo(
+    () => [
+      { value: 'auto', label: t('process.purge_opt_auto', 'Auto (≤ 6mm Full Purge / > 6mm Root+TIG)') },
+      { value: 'full', label: t('process.purge_opt_full', 'Full Purge (All Passes Until Weld Finishes)') },
+      { value: 'root_hot', label: t('process.purge_opt_root_hot', 'Root & Hot Pass Only (Pass 1-2)') },
+      { value: 'gtaw_all', label: t('process.purge_opt_gtaw_all', 'All TIG (GTAW) Passes') },
+    ],
+    [t]
+  );
+
+  const tigDiaOptions = useMemo(
+    () =>
+      ['1.6', '2.0', '2.4', '3.2'].map((val) => {
+        const rawGrams = getRawUnitWeightGrams('GTAW', parseFloat(val), 1000, { isFluxCoredTig });
+        return {
+          value: val,
+          label: `Ø ${parseFloat(val).toFixed(1)} mm (${rawGrams.toFixed(1)} g)`,
+        };
+      }),
+    [isFluxCoredTig]
+  );
+
+  const smawDiaOptions = useMemo(
+    () =>
+      ['2.00', '2.50', '3.25', '4.00', '5.00'].map((val) => {
+        const netDepositGrams = getUnitDepositWeightGrams('SMAW', parseFloat(val), activeSmawLen, {});
+        return {
+          value: val,
+          label: `Ø ${parseFloat(val).toFixed(2)} mm (~${netDepositGrams.toFixed(1)} g)`,
+        };
+      }),
+    [activeSmawLen]
+  );
+
+  const smawLenOptions = useMemo(
+    () => [
+      { value: '300', label: t('process.length_300', '300 mm (Stainless & Special)') },
+      { value: '350', label: t('process.length_350', '350 mm Standard') },
+      { value: '450', label: t('process.length_450', '450 mm Heavy Duty') },
+    ],
+    [t]
+  );
+
+  const gmawDiaOptions = useMemo(
+    () =>
+      ['0.8', '1.0', '1.2', '1.6'].map((val) => ({
+        value: val,
+        label: `Ø ${val} mm (${t('process.spool_15kg', '15 kg Spool')})`,
+      })),
+    [t]
+  );
+
+  const fcawDiaOptions = useMemo(
+    () =>
+      ['1.0', '1.2', '1.4', '1.6'].map((val) => ({
+        value: val,
+        label: `Ø ${val} mm (${t('process.spool_15kg', '15 kg Spool')})`,
+      })),
+    [t]
+  );
+
+  const sawDiaOptions = useMemo(
+    () =>
+      ['2.5', '3.2', '4.0'].map((val) => ({
+        value: val,
+        label: `Ø ${val} mm (${t('process.spool_25kg_flux', '25 kg + Flux')})`,
+      })),
+    [t]
+  );
+
+  const customMethodOptions = useMemo(
+    () => [
+      { value: 'GTAW', label: 'GTAW (TIG)' },
+      { value: 'SMAW', label: 'SMAW (Stick)' },
+      { value: 'GMAW', label: 'GMAW (MIG)' },
+      { value: 'FCAW', label: 'FCAW (Flux)' },
+      { value: 'SAW', label: 'SAW' },
+    ],
+    []
+  );
+
+  const customSmawLengthOptions = useMemo(
+    () => [
+      { value: 300, label: '300 mm' },
+      { value: 350, label: '350 mm' },
+      { value: 450, label: '450 mm' },
+    ],
+    []
+  );
+
+  const customGtawLengthOptions = useMemo(
+    () => [{ value: 1000, label: '1000 mm' }],
+    []
+  );
 
   const handleAddPassGroup = () => {
     if (!setCustomPassGroups) return;
@@ -536,7 +681,7 @@ export default function ProcessConfigCard({
       {isPlateMode && (
         <div className="mb-3 p-2.5 rounded-fluent bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 flex items-center gap-2">
           <Building2 className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-          <span className="text-[11px] font-semibold text-amber-900 dark:text-amber-300">
+          <span className="text-[11px] font-semibold text-amber-900 dark:text-amber-300 leading-tight">
             {t('process.plate_mode_notice', 'Plate Mode (ASME Sec. IX / AWS D1.1 / EN 1090): Choose SMAW, GTAW, GMAW, FCAW or SAW for root and fill layers.')}
           </span>
         </div>
@@ -545,36 +690,29 @@ export default function ProcessConfigCard({
       {/* 2. Process Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-3">
         <div>
-          <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+          <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
             {t('process.root_process', 'Root & Hot Pass Process')}
           </label>
-          <select
+          <FluentSelect
             value={rootProcess}
-            onChange={(e) => setRootProcess(e.target.value)}
-            className="fluent-select text-xs font-medium"
-          >
-            <option value="GTAW">GTAW (TIG / ISO 141)</option>
-            <option value="SMAW">SMAW (Stick MMA / ISO 111)</option>
-            <option value="GMAW">GMAW (MIG/MAG / ISO 135)</option>
-            <option value="FCAW">FCAW (GSFCAW Flux-Cored / ISO 136)</option>
-          </select>
+            onChange={(val) => setRootProcess(val)}
+            options={rootProcessOptions}
+            label={t('process.root_process', 'Root & Hot Pass Process')}
+            className="text-xs font-medium"
+          />
         </div>
 
         <div>
-          <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+          <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
             {t('process.fill_process', 'Fill & Cap Pass Process')}
           </label>
-          <select
+          <FluentSelect
             value={fillProcess}
-            onChange={(e) => setFillProcess(e.target.value)}
-            className="fluent-select text-xs font-medium"
-          >
-            <option value="SMAW">SMAW (Stick MMA / ISO 111)</option>
-            <option value="GTAW">GTAW (Full TIG / ISO 141)</option>
-            <option value="FCAW">FCAW (GSFCAW Flux-Cored / ISO 136)</option>
-            <option value="SAW">SAW (Submerged Arc / ISO 121)</option>
-            <option value="GMAW">GMAW (MIG/MAG / ISO 135)</option>
-          </select>
+            onChange={(val) => setFillProcess(val)}
+            options={fillProcessOptions}
+            label={t('process.fill_process', 'Fill & Cap Pass Process')}
+            className="text-xs font-medium"
+          />
         </div>
       </div>
 
@@ -582,38 +720,23 @@ export default function ProcessConfigCard({
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 mb-3">
         {setWeldPosition && (
           <div className="sm:col-span-6">
-            <label className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+            <label className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
               <Compass className="w-3.5 h-3.5 text-fluent-accent flex-shrink-0" />
               <span>{t('process.weld_position_label', 'Welding Position (ASME / AWS)')}</span>
             </label>
-            <select
+            <FluentSelect
               value={weldPosition}
-              onChange={(e) => setWeldPosition(e.target.value)}
-              className="fluent-select text-xs font-medium py-2"
-            >
-              <option value="flat">
-                {isPlateMode
-                  ? (isFillet ? t('process.pos_1f_plate', '1F (Flat Fillet • 1.20×)') : t('process.pos_1g_plate', '1G (Flat • 1.20×)'))
-                  : (isFillet ? t('process.pos_1f_pipe', '1F (Rotated Pipe Fillet • 1.20×)') : t('process.pos_1g_pipe', '1G (Rotated Pipe • 1.20×)'))}
-              </option>
-              <option value="horizontal">
-                {isFillet ? t('process.pos_2f', '2F (Horizontal Fillet • 1.05×)') : t('process.pos_2g', '2G (Horizontal • 1.05×)')}
-              </option>
-              <option value="vertical_fixed">
-                {isPlateMode
-                  ? (isFillet ? t('process.pos_3f_plate', '3F (Vertical Fillet • 1.00×)') : t('process.pos_3g_plate', '3G (Vertical • 1.00×)'))
-                  : t('process.pos_5g_6g_pipe', '5G / 6G (Fixed Pipe • 1.00×)')}
-              </option>
-              <option value="overhead">
-                {isFillet ? t('process.pos_4f', '4F (Overhead Fillet • 0.90×)') : t('process.pos_4g', '4G (Overhead • 0.90×)')}
-              </option>
-            </select>
+              onChange={(val) => setWeldPosition(val)}
+              options={weldPositionOptions}
+              label={t('process.weld_position_label', 'Welding Position (ASME / AWS)')}
+              className="text-xs font-medium py-2"
+            />
           </div>
         )}
 
         {setTravelDirection && (
           <div className="sm:col-span-6">
-            <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+            <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
               {t('process.travel_direction', 'Travel Direction')}
             </label>
             <div className="grid grid-cols-2 gap-1 p-1 rounded-fluent bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
@@ -621,27 +744,27 @@ export default function ProcessConfigCard({
                 type="button"
                 disabled={!isVerticalFixed}
                 onClick={() => setTravelDirection('uphill')}
-                className={`py-1.5 px-1.5 rounded-fluent text-[11px] font-semibold flex items-center justify-center gap-1 transition-all disabled:opacity-60 ${
+                className={`py-1.5 px-1.5 rounded-fluent text-[11px] font-semibold flex items-center justify-center gap-1 text-center leading-tight transition-all disabled:opacity-60 ${
                   !isVerticalFixed || travelDirection === 'uphill'
                     ? 'bg-white dark:bg-[#383838] text-fluent-accent dark:text-fluent-accent-dark shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <TrendingUp className="w-3 h-3 flex-shrink-0" />
-                <span className="truncate">{t('process.uphill', 'Uphill (1.0×)')}</span>
+                <span className="whitespace-normal break-words">{t('process.uphill', 'Uphill (1.0×)')}</span>
               </button>
               <button
                 type="button"
                 disabled={!isVerticalFixed}
                 onClick={() => setTravelDirection('downhill')}
-                className={`py-1.5 px-1.5 rounded-fluent text-[11px] font-semibold flex items-center justify-center gap-1 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                className={`py-1.5 px-1.5 rounded-fluent text-[11px] font-semibold flex items-center justify-center gap-1 text-center leading-tight transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                   isVerticalFixed && travelDirection === 'downhill'
                     ? 'bg-white dark:bg-[#383838] text-fluent-accent dark:text-fluent-accent-dark shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <TrendingDown className="w-3 h-3 flex-shrink-0" />
-                <span className="truncate">{t('process.downhill', 'Downhill (2.2×)')}</span>
+                <span className="whitespace-normal break-words">{t('process.downhill', 'Downhill (2.2×)')}</span>
               </button>
             </div>
           </div>
@@ -649,7 +772,7 @@ export default function ProcessConfigCard({
 
         {/* Torch Shielding Gas Flow Rate */}
         <div className="sm:col-span-6">
-          <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 truncate">
+          <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
             {t('process.gas_flow_rate', 'Torch Gas Flow Rate')} ({t('units.lpm', 'L/min')})
           </label>
           <input
@@ -666,17 +789,16 @@ export default function ProcessConfigCard({
         {/* Standard Gas Cylinder Spec */}
         {setCylinderVolumeM3 && (
           <div className="sm:col-span-6">
-            <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+            <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
               {t('process.cylinder_size', 'Cylinder Capacity')}
             </label>
-            <select
+            <FluentSelect
               value={cylinderVolumeM3}
-              onChange={(e) => setCylinderVolumeM3(e.target.value)}
-              className="fluent-select text-xs font-medium py-2"
-            >
-              <option value="6.0">{t('process.cyl_150bar', '50L / 150 Bar (6,000 L)')}</option>
-              <option value="10.0">{t('process.cyl_200bar', '50L / 200 Bar (10,000 L)')}</option>
-            </select>
+              onChange={(val) => setCylinderVolumeM3(val)}
+              options={cylinderOptions}
+              label={t('process.cylinder_size', 'Cylinder Capacity')}
+              className="text-xs font-medium py-2"
+            />
           </div>
         )}
       </div>
@@ -709,7 +831,7 @@ export default function ProcessConfigCard({
 
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3">
             <div className="sm:col-span-5">
-              <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1 truncate">
+              <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                 {t('process.purge_flow_rate', 'Purge Gas Flow Rate')} ({t('units.lpm', 'L/min')})
               </label>
               <input
@@ -724,27 +846,16 @@ export default function ProcessConfigCard({
             </div>
 
             <div className="sm:col-span-7">
-              <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                 {t('process.purge_strategy_label', 'Purge Coverage Scope')}
               </label>
-              <select
+              <FluentSelect
                 value={purgeStrategy}
-                onChange={(e) => setPurgeStrategy(e.target.value)}
-                className="fluent-select text-xs font-medium py-2"
-              >
-                <option value="auto">
-                  {t('process.purge_opt_auto', 'Auto (≤ 6mm Full Purge / > 6mm Root+TIG)')}
-                </option>
-                <option value="full">
-                  {t('process.purge_opt_full', 'Full Purge (All Passes Until Weld Finishes)')}
-                </option>
-                <option value="root_hot">
-                  {t('process.purge_opt_root_hot', 'Root & Hot Pass Only (Pass 1-2)')}
-                </option>
-                <option value="gtaw_all">
-                  {t('process.purge_opt_gtaw_all', 'All TIG (GTAW) Passes')}
-                </option>
-              </select>
+                onChange={(val) => setPurgeStrategy(val)}
+                options={purgeStrategyOptions}
+                label={t('process.purge_strategy_label', 'Purge Coverage Scope')}
+                className="text-xs font-medium py-2"
+              />
             </div>
           </div>
         </div>
@@ -755,7 +866,7 @@ export default function ProcessConfigCard({
         <div className="p-3 sm:p-3.5 rounded-fluent bg-black/[0.02] dark:bg-white/[0.02] border border-black/[0.06] dark:border-white/[0.06] mb-3 sm:mb-4 space-y-2.5">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
             <Layers className="w-3.5 h-3.5 text-fluent-accent flex-shrink-0" />
-            <span className="truncate">
+            <span className="leading-tight">
               {t('process.consumable_specs_title', 'Consumable Sizing & Specifications (User Configurable)')}
             </span>
           </div>
@@ -763,108 +874,91 @@ export default function ProcessConfigCard({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
             {isTigActive && (
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                   {t('process.tig_diameter', 'TIG Wire Diameter (Ø)')}
                 </label>
-                <select
+                <FluentSelect
                   value={tigWireDiaMm}
-                  onChange={(e) => setTigWireDiaMm(e.target.value)}
-                  className="fluent-select text-xs font-medium"
-                >
-                  <option value="1.6">{formatTigOptionLabel(1.6)}</option>
-                  <option value="2.0">{formatTigOptionLabel(2.0)}</option>
-                  <option value="2.4">{formatTigOptionLabel(2.4)}</option>
-                  <option value="3.2">{formatTigOptionLabel(3.2)}</option>
-                </select>
+                  onChange={(val) => setTigWireDiaMm(val)}
+                  options={tigDiaOptions}
+                  label={t('process.tig_diameter', 'TIG Wire Diameter (Ø)')}
+                  className="text-xs font-medium"
+                />
               </div>
             )}
 
             {isSmawActive && (
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                   {t('process.smaw_diameter', 'Stick Electrode Diameter (Ø)')}
                 </label>
-                <select
+                <FluentSelect
                   value={smawElectrodeDiaMm}
-                  onChange={(e) => setSmawElectrodeDiaMm(e.target.value)}
-                  className="fluent-select text-xs font-medium"
-                >
-                  <option value="2.00">{formatSmawOptionLabel(2.00)}</option>
-                  <option value="2.50">{formatSmawOptionLabel(2.50)}</option>
-                  <option value="3.25">{formatSmawOptionLabel(3.25)}</option>
-                  <option value="4.00">{formatSmawOptionLabel(4.00)}</option>
-                  <option value="5.00">{formatSmawOptionLabel(5.00)}</option>
-                </select>
+                  onChange={(val) => setSmawElectrodeDiaMm(val)}
+                  options={smawDiaOptions}
+                  label={t('process.smaw_diameter', 'Stick Electrode Diameter (Ø)')}
+                  className="text-xs font-medium"
+                />
               </div>
             )}
 
             {isSmawActive && (
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                   {t('process.smaw_length', 'Stick Electrode Length')}
                 </label>
-                <select
+                <FluentSelect
                   value={smawLengthMm}
-                  onChange={(e) => setSmawLengthMm(e.target.value)}
-                  className="fluent-select text-xs font-medium"
-                >
-                  <option value="300">{t('process.length_300', '300 mm (Stainless & Special)')}</option>
-                  <option value="350">{t('process.length_350', '350 mm Standard')}</option>
-                  <option value="450">{t('process.length_450', '450 mm Heavy Duty')}</option>
-                </select>
+                  onChange={(val) => setSmawLengthMm(val)}
+                  options={smawLenOptions}
+                  label={t('process.smaw_length', 'Stick Electrode Length')}
+                  className="text-xs font-medium"
+                />
               </div>
             )}
 
             {isGmawActive && setGmawWireDiaMm && (
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                   {t('process.gmaw_diameter', 'MIG/MAG Wire Diameter (Ø)')}
                 </label>
-                <select
+                <FluentSelect
                   value={gmawWireDiaMm}
-                  onChange={(e) => setGmawWireDiaMm(e.target.value)}
-                  className="fluent-select text-xs font-medium"
-                >
-                  <option value="0.8">Ø 0.8 mm ({t('process.spool_15kg', '15 kg Spool')})</option>
-                  <option value="1.0">Ø 1.0 mm ({t('process.spool_15kg', '15 kg Spool')})</option>
-                  <option value="1.2">Ø 1.2 mm ({t('process.spool_15kg', '15 kg Spool')})</option>
-                  <option value="1.6">Ø 1.6 mm ({t('process.spool_15kg', '15 kg Spool')})</option>
-                </select>
+                  onChange={(val) => setGmawWireDiaMm(val)}
+                  options={gmawDiaOptions}
+                  label={t('process.gmaw_diameter', 'MIG/MAG Wire Diameter (Ø)')}
+                  className="text-xs font-medium"
+                />
               </div>
             )}
 
             {isFcawActive && setFcawWireDiaMm && (
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                   {t('process.fcaw_diameter', 'FCAW Flux-Cored Wire (Ø)')}
                 </label>
-                <select
+                <FluentSelect
                   value={fcawWireDiaMm}
-                  onChange={(e) => setFcawWireDiaMm(e.target.value)}
-                  className="fluent-select text-xs font-medium"
-                >
-                  <option value="1.0">Ø 1.0 mm ({t('process.spool_15kg', '15 kg Spool')})</option>
-                  <option value="1.2">Ø 1.2 mm ({t('process.spool_15kg', '15 kg Spool')})</option>
-                  <option value="1.4">Ø 1.4 mm ({t('process.spool_15kg', '15 kg Spool')})</option>
-                  <option value="1.6">Ø 1.6 mm ({t('process.spool_15kg', '15 kg Spool')})</option>
-                </select>
+                  onChange={(val) => setFcawWireDiaMm(val)}
+                  options={fcawDiaOptions}
+                  label={t('process.fcaw_diameter', 'FCAW Flux-Cored Wire (Ø)')}
+                  className="text-xs font-medium"
+                />
               </div>
             )}
 
             {isSawActive && setSawWireDiaMm && (
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                   {t('process.saw_diameter', 'SAW Wire Diameter (Ø)')}
                 </label>
-                <select
+                <FluentSelect
                   value={sawWireDiaMm}
-                  onChange={(e) => setSawWireDiaMm(e.target.value)}
-                  className="fluent-select text-xs font-medium"
-                >
-                  <option value="2.5">Ø 2.5 mm ({t('process.spool_25kg_flux', '25 kg + Flux')})</option>
-                  <option value="3.2">Ø 3.2 mm ({t('process.spool_25kg_flux', '25 kg + Flux')})</option>
-                  <option value="4.0">Ø 4.0 mm ({t('process.spool_25kg_flux', '25 kg + Flux')})</option>
-                </select>
+                  onChange={(val) => setSawWireDiaMm(val)}
+                  options={sawDiaOptions}
+                  label={t('process.saw_diameter', 'SAW Wire Diameter (Ø)')}
+                  className="text-xs font-medium"
+                />
               </div>
             )}
           </div>
@@ -879,10 +973,10 @@ export default function ProcessConfigCard({
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-fluent-accent flex-shrink-0" />
               <div>
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
                   {t('process.pass_stacking_title', 'Stepped Pass Stacking Sequence (ASME 3×d Rule)')}
                 </h4>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
                   {t('process.pass_stacking_subtitle', 'Define specific runs per diameter (e.g. 2×2.50mm, 4×3.20mm, 6×4.00mm)')}
                 </p>
               </div>
@@ -923,7 +1017,10 @@ export default function ProcessConfigCard({
               ) : (
                 customPassGroups.map((group, idx) => {
                   const currentProc = (group.process || 'SMAW').toUpperCase();
-                  const diameterOptions = getDiameterOptions(currentProc);
+                  const diameterOptions = getDiameterOptions(currentProc).map((opt) => ({
+                    value: Number(opt.value).toFixed(2),
+                    label: opt.label,
+                  }));
                   const currentDia = parseFloat(group.diameterMm) || getSelectedDiameterForProcess(currentProc);
                   const currentLen = parseInt(group.lengthMm, 10) || getDefaultLengthMm(currentProc, currentDia) || 350;
                   const rowSupportsTorch = isGasShieldedProcess(currentProc);
@@ -966,61 +1063,53 @@ export default function ProcessConfigCard({
                       {/* Row 2: Method, Diameter, Length & Runs */}
                       <div className="grid grid-cols-12 gap-1.5 sm:gap-2">
                         <div className="col-span-6 sm:col-span-3">
-                          <label className="block text-[10px] font-semibold text-slate-400 mb-0.5">
+                          <label className="block text-[10px] font-semibold text-slate-400 mb-0.5 leading-tight">
                             {t('process.method_label', 'Method:')}
                           </label>
-                          <select
+                          <FluentSelect
                             value={currentProc}
-                            onChange={(e) => handleUpdatePassGroup(idx, 'process', e.target.value)}
-                            className="fluent-select text-xs py-1.5 px-2 font-bold bg-slate-50 dark:bg-slate-800"
-                          >
-                            <option value="GTAW">GTAW (TIG)</option>
-                            <option value="SMAW">SMAW (Stick)</option>
-                            <option value="GMAW">GMAW (MIG)</option>
-                            <option value="FCAW">FCAW (Flux)</option>
-                            <option value="SAW">SAW</option>
-                          </select>
+                            onChange={(val) => handleUpdatePassGroup(idx, 'process', val)}
+                            options={customMethodOptions}
+                            label={t('process.method_label', 'Method:')}
+                            className="text-xs py-1.5 px-2 font-bold bg-slate-50 dark:bg-slate-800"
+                          />
                         </div>
 
                         <div className="col-span-6 sm:col-span-4">
-                          <label className="block text-[10px] font-semibold text-slate-400 mb-0.5">
+                          <label className="block text-[10px] font-semibold text-slate-400 mb-0.5 leading-tight">
                             {t('process.dia_label', 'Dia:')}
                           </label>
-                          <select
+                          <FluentSelect
                             value={Number(currentDia).toFixed(2)}
-                            onChange={(e) => handleUpdatePassGroup(idx, 'diameterMm', parseFloat(e.target.value))}
-                            className="fluent-select text-xs py-1.5 px-2 font-medium"
-                          >
-                            {diameterOptions.map((opt) => (
-                              <option key={opt.value} value={Number(opt.value).toFixed(2)}>
-                                {opt.label}
-                              </option>
-                            ))}
-                          </select>
+                            onChange={(val) => handleUpdatePassGroup(idx, 'diameterMm', parseFloat(val))}
+                            options={diameterOptions}
+                            label={t('process.dia_label', 'Dia:')}
+                            className="text-xs py-1.5 px-2 font-medium"
+                          />
                         </div>
 
                         <div className="col-span-7 sm:col-span-3">
-                          <label className="block text-[10px] font-semibold text-slate-400 mb-0.5">
+                          <label className="block text-[10px] font-semibold text-slate-400 mb-0.5 leading-tight">
                             {t('process.length_label', 'Length:')}
                           </label>
                           {currentProc === 'SMAW' ? (
-                            <select
+                            <FluentSelect
                               value={currentLen}
-                              onChange={(e) => handleUpdatePassGroup(idx, 'lengthMm', parseInt(e.target.value, 10))}
-                              className="fluent-select text-xs py-1.5 px-2 font-semibold"
-                            >
-                              <option value={300}>300 mm</option>
-                              <option value={350}>350 mm</option>
-                              <option value={450}>450 mm</option>
-                            </select>
+                              onChange={(val) => handleUpdatePassGroup(idx, 'lengthMm', parseInt(val, 10))}
+                              options={customSmawLengthOptions}
+                              label={t('process.length_label', 'Length:')}
+                              align="right"
+                              className="text-xs py-1.5 px-2 font-semibold"
+                            />
                           ) : currentProc === 'GTAW' ? (
-                            <select
+                            <FluentSelect
                               value={currentLen}
-                              onChange={(e) => handleUpdatePassGroup(idx, 'lengthMm', parseInt(e.target.value, 10))}
-                              className="fluent-select text-xs py-1.5 px-2 font-medium"
-                            >
-                              <option value={1000}>1000 mm</option>
-                            </select>
+                              onChange={(val) => handleUpdatePassGroup(idx, 'lengthMm', parseInt(val, 10))}
+                              options={customGtawLengthOptions}
+                              label={t('process.length_label', 'Length:')}
+                              align="right"
+                              className="text-xs py-1.5 px-2 font-medium"
+                            />
                           ) : (
                             <div className="fluent-input text-xs py-1.5 px-2 text-center font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60">
                               {t('process.spool_label', 'Spool')}
@@ -1029,7 +1118,7 @@ export default function ProcessConfigCard({
                         </div>
 
                         <div className="col-span-5 sm:col-span-2">
-                          <label className="block text-[10px] font-semibold text-slate-400 mb-0.5 text-center truncate">
+                          <label className="block text-[10px] font-semibold text-slate-400 mb-0.5 text-center leading-tight">
                             {t('process.runs_label', 'Runs:')}
                           </label>
                           <input
@@ -1046,9 +1135,9 @@ export default function ProcessConfigCard({
                       {/* Row 3: Per-Layer Torch Gas & Purge Gas */}
                       <div className="grid grid-cols-2 gap-1.5 sm:gap-2 pt-1 border-t border-black/[0.04] dark:border-white/[0.05]">
                         <div>
-                          <label className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 mb-0.5">
+                          <label className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 mb-0.5 leading-tight">
                             <Flame className="w-3 h-3 text-sky-500 flex-shrink-0" />
-                            <span className="truncate">
+                            <span>
                               {t('process.layer_torch_gas', 'Torch Gas')} ({t('units.lpm', 'L/min')})
                             </span>
                           </label>
@@ -1070,9 +1159,9 @@ export default function ProcessConfigCard({
                         </div>
 
                         <div>
-                          <label className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 mb-0.5">
+                          <label className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 mb-0.5 leading-tight">
                             <Shield className="w-3 h-3 text-blue-500 flex-shrink-0" />
-                            <span className="truncate">
+                            <span>
                               {t('process.layer_purge_gas', 'Purge Gas')} ({t('units.lpm', 'L/min')})
                             </span>
                           </label>
@@ -1123,7 +1212,7 @@ export default function ProcessConfigCard({
               onChange={(e) => setIncludeShopScrap(e.target.checked)}
               className="w-4 h-4 rounded text-fluent-accent focus:ring-fluent-accent/40 cursor-pointer"
             />
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-tight">
               {t('process.shop_scrap', 'Include 15% Site Scrap / Stub Loss Factor')}
             </span>
           </label>
