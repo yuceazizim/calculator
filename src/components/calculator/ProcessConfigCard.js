@@ -3,7 +3,8 @@
  * Calculator Component: ProcessConfigCard
  * Windows 11 Fluent Process Partitioning, Welding Position (1G/2G/3G-5G-6G/4G), Travel Direction,
  * Shielding & Purge Gas Controls, Cylinder Spec, Multi-Process Consumable Sizing (GTAW/SMAW/GMAW/FCAW/SAW),
- * Theme-Aware FluentSelect Pickers & Per-Pass Diameter + Length + Gas Stacker
+ * Theme-Aware FluentSelect Pickers, Editable FluentComboInput Layer Selector
+ * & Per-Pass Diameter + Length + Gas Stacker
  * Mobile-First: Edge-to-Edge Flush Layout & Multi-Language Safe Wrapping (leading-tight)
  * Standards: ASME Sec. IX • AWS D1.1 (Structural Steel) • EN 1090
  * Pure JavaScript (.js only)
@@ -12,6 +13,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from '../../i18n.js';
 import FluentSelect from '../common/FluentSelect.js';
+import FluentComboInput from '../common/FluentComboInput.js';
 import {
   isGasShieldedProcess,
   getDefaultLengthMm,
@@ -273,6 +275,23 @@ export default function ProcessConfigCard({
   const customGtawLengthOptions = useMemo(
     () => [{ value: 1000, label: '1000 mm' }],
     []
+  );
+
+  const layerNameOptions = useMemo(
+    () => [
+      { value: t('schedule.layer_root', 'Root Pass'), label: t('schedule.layer_root', 'Root Pass') },
+      { value: t('schedule.layer_hot', 'Hot Pass'), label: t('schedule.layer_hot', 'Hot Pass') },
+      { value: t('process.auto_root_hot', 'Root & Hot Pass'), label: t('process.auto_root_hot', 'Root & Hot Pass') },
+      { value: t('process.auto_root_layer_fill', 'Root-Layer Fill'), label: t('process.auto_root_layer_fill', 'Root-Layer Fill') },
+      { value: t('schedule.layer_deep_fill', 'Deep Fill (Narrow Root)'), label: t('schedule.layer_deep_fill', 'Deep Fill (Narrow Root)') },
+      { value: t('schedule.layer_groove_fill', 'Groove Fill'), label: t('schedule.layer_groove_fill', 'Groove Fill') },
+      { value: t('process.auto_intermediate_fill', 'Intermediate Fill'), label: t('process.auto_intermediate_fill', 'Intermediate Fill') },
+      { value: t('schedule.layer_main_fill', 'Main Body Fill'), label: t('schedule.layer_main_fill', 'Main Body Fill') },
+      { value: t('schedule.layer_cap_cover', 'Cap Cover (Stringers)'), label: t('schedule.layer_cap_cover', 'Cap Cover (Stringers)') },
+      { value: t('schedule.layer_cap_both_sides', 'Cap Cover (Both Sides)'), label: t('schedule.layer_cap_both_sides', 'Cap Cover (Both Sides)') },
+      { value: t('schedule.layer_fillet_fill_cover', 'Fillet Fill & Cover'), label: t('schedule.layer_fillet_fill_cover', 'Fillet Fill & Cover') },
+    ],
+    [t]
   );
 
   const handleAddPassGroup = () => {
@@ -1038,17 +1057,18 @@ export default function ProcessConfigCard({
                       key={group.id || idx}
                       className="p-2.5 rounded-fluent bg-white dark:bg-[#282828] border border-black/[0.08] dark:border-white/[0.08] shadow-sm space-y-2"
                     >
-                      {/* Row 1: Layer Index, Name Input & Delete Button */}
+                      {/* Row 1: Layer Index, Editable Preset ComboBox & Delete Button */}
                       <div className="flex items-center gap-2">
                         <span className="text-[11px] font-bold text-fluent-accent px-1.5 py-0.5 rounded bg-fluent-accent/10 flex-shrink-0">
                           #{idx + 1}
                         </span>
-                        <input
-                          type="text"
+                        <FluentComboInput
                           value={group.label || ''}
-                          onChange={(e) => handleUpdatePassGroup(idx, 'label', e.target.value)}
+                          onChange={(val) => handleUpdatePassGroup(idx, 'label', val)}
+                          options={layerNameOptions}
+                          label={t('process.layer_name_placeholder', 'Layer Name')}
                           placeholder={t('process.layer_name_placeholder', 'Layer Name')}
-                          className="fluent-input text-xs py-1 px-2.5 font-semibold min-w-0 flex-1"
+                          className="flex-1"
                         />
                         <button
                           type="button"

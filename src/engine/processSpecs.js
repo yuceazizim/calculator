@@ -11,37 +11,136 @@
  * Determine base metal metallurgy family & default AWS filler classifications
  */
 export function resolveMetallurgyProfile({ materialGroup = 'Carbon Steel', density = 7.85, isFluxCoredTig = false }) {
-  const isStainless = materialGroup.includes('Stainless') || (density >= 7.95 && density <= 8.10);
-  const isNickelAlloy = materialGroup.includes('Nickel') || density > 8.20;
-  const isDuplex = materialGroup.includes('Duplex');
+  const isSuperDuplex = materialGroup.includes('Super Duplex') || materialGroup.includes('2507');
+  const isDuplex = isSuperDuplex || materialGroup.includes('Duplex');
+  const isNickelAlloy = materialGroup.includes('Nickel') || density > 8.12;
+  const isStainless = !isDuplex && !isNickelAlloy && (
+    materialGroup.includes('Stainless') || (density >= 7.92 && density <= 8.10)
+  );
+
   const isP11 = materialGroup.includes('P11') || materialGroup.includes('1.25Cr');
-  const isP9 = materialGroup.includes('P9') || materialGroup.includes('9Cr');
+  const isP22 = materialGroup.includes('P22') || materialGroup.includes('2.25Cr');
+  const isP5 = materialGroup.includes('P5') || materialGroup.includes('5Cr');
+  const isP91 = materialGroup.includes('P91') || materialGroup.includes('9Cr 1Mo-V');
+  const isP9 = !isP91 && (materialGroup.includes('P9') || materialGroup.includes('9Cr'));
   const isLowTemp = materialGroup.includes('Low Temp') || materialGroup.includes('A333');
+  const isPipeline = materialGroup.includes('Pipeline');
+
+  const is304 = isStainless && materialGroup.includes('304');
+  const is321Or347 = isStainless && (materialGroup.includes('321') || materialGroup.includes('347'));
+  const is310 = isStainless && materialGroup.includes('310');
+
+  const isInconel625 = isNickelAlloy && materialGroup.includes('625');
+  const isIncoloy825 = isNickelAlloy && materialGroup.includes('825');
+  const isHastelloyC276 = isNickelAlloy && (materialGroup.includes('C-276') || materialGroup.includes('Hastelloy'));
 
   let defaultTigClass = 'ER70S-6';
-  if (isStainless) defaultTigClass = isFluxCoredTig ? 'TG-X316L (Flux-Cored)' : 'ER316L';
-  else if (isP11) defaultTigClass = 'ER80S-B2';
-  else if (isP9) defaultTigClass = 'ER80S-B8';
-  else if (isDuplex) defaultTigClass = 'ER2209';
-  else if (isNickelAlloy) defaultTigClass = 'ERNiCr-3 (Inconel 82)';
+  if (isSuperDuplex) {
+    defaultTigClass = 'ER2594';
+  } else if (isDuplex) {
+    defaultTigClass = 'ER2209';
+  } else if (is304) {
+    defaultTigClass = isFluxCoredTig ? 'TG-X308L (Flux-Cored)' : 'ER308L';
+  } else if (is321Or347) {
+    defaultTigClass = 'ER347';
+  } else if (is310) {
+    defaultTigClass = 'ER310';
+  } else if (isStainless) {
+    defaultTigClass = isFluxCoredTig ? 'TG-X316L (Flux-Cored)' : 'ER316L';
+  } else if (isP11) {
+    defaultTigClass = 'ER80S-B2';
+  } else if (isP22) {
+    defaultTigClass = 'ER90S-B3';
+  } else if (isP5) {
+    defaultTigClass = 'ER80S-B6';
+  } else if (isP91) {
+    defaultTigClass = 'ER90S-B9';
+  } else if (isP9) {
+    defaultTigClass = 'ER80S-B8';
+  } else if (isInconel625) {
+    defaultTigClass = 'ERNiCrMo-3 (Inconel 625)';
+  } else if (isIncoloy825) {
+    defaultTigClass = 'ERNiFeCr-1 / ERNiCrMo-3';
+  } else if (isHastelloyC276) {
+    defaultTigClass = 'ERNiCrMo-4 (C-276)';
+  } else if (isNickelAlloy) {
+    defaultTigClass = 'ERNiCr-3 (Inconel 82)';
+  }
 
   let defaultSmawClass = 'E7018-1 H4R';
-  if (isStainless) defaultSmawClass = 'E316L-17 / E308L-17';
-  else if (isDuplex) defaultSmawClass = 'E2209-17';
-  else if (isP11) defaultSmawClass = 'E8018-B2 H4R';
-  else if (isP9) defaultSmawClass = 'E8015-B8';
-  else if (isNickelAlloy) defaultSmawClass = 'ENiCrFe-3 (Inconel 182)';
+  if (isSuperDuplex) {
+    defaultSmawClass = 'E2594-16';
+  } else if (isDuplex) {
+    defaultSmawClass = 'E2209-17';
+  } else if (is304) {
+    defaultSmawClass = 'E308L-17';
+  } else if (is321Or347) {
+    defaultSmawClass = 'E347-17';
+  } else if (is310) {
+    defaultSmawClass = 'E310-16';
+  } else if (isStainless) {
+    defaultSmawClass = 'E316L-17 / E308L-17';
+  } else if (isP11) {
+    defaultSmawClass = 'E8018-B2 H4R';
+  } else if (isP22) {
+    defaultSmawClass = 'E9018-B3 H4R';
+  } else if (isP5) {
+    defaultSmawClass = 'E8018-B6';
+  } else if (isP91) {
+    defaultSmawClass = 'E9018-B9 H4R';
+  } else if (isP9) {
+    defaultSmawClass = 'E8015-B8';
+  } else if (isInconel625 || isIncoloy825) {
+    defaultSmawClass = 'ENiCrMo-3 (Inconel 112)';
+  } else if (isHastelloyC276) {
+    defaultSmawClass = 'ENiCrMo-4';
+  } else if (isNickelAlloy) {
+    defaultSmawClass = 'ENiCrFe-3 (Inconel 182)';
+  } else if (isPipeline) {
+    defaultSmawClass = 'E7018-1 / E8018-G';
+  }
 
-  const defaultGmawClass = isStainless ? 'ER316L' : (isNickelAlloy ? 'ERNiCr-3' : 'ER70S-6');
-  const defaultFcawClass = isStainless ? 'E316LT1-1' : (isDuplex ? 'E2209T1-1' : 'E71T-1C');
+  let defaultGmawClass = 'ER70S-6';
+  if (isSuperDuplex) defaultGmawClass = 'ER2594';
+  else if (isDuplex) defaultGmawClass = 'ER2209';
+  else if (is304) defaultGmawClass = 'ER308L';
+  else if (is321Or347) defaultGmawClass = 'ER347';
+  else if (is310) defaultGmawClass = 'ER310';
+  else if (isStainless) defaultGmawClass = 'ER316L';
+  else if (isP11) defaultGmawClass = 'ER80S-B2';
+  else if (isP22) defaultGmawClass = 'ER90S-B3';
+  else if (isP5) defaultGmawClass = 'ER80S-B6';
+  else if (isP91) defaultGmawClass = 'ER90S-B9';
+  else if (isP9) defaultGmawClass = 'ER80S-B8';
+  else if (isInconel625 || isIncoloy825) defaultGmawClass = 'ERNiCrMo-3';
+  else if (isHastelloyC276) defaultGmawClass = 'ERNiCrMo-4';
+  else if (isNickelAlloy) defaultGmawClass = 'ERNiCr-3';
+
+  let defaultFcawClass = 'E71T-1C';
+  if (isSuperDuplex) defaultFcawClass = 'E2594T1-1';
+  else if (isDuplex) defaultFcawClass = 'E2209T1-1';
+  else if (is304) defaultFcawClass = 'E308LT1-1';
+  else if (is321Or347) defaultFcawClass = 'E347T1-1';
+  else if (is310) defaultFcawClass = 'E310T1-1';
+  else if (isStainless) defaultFcawClass = 'E316LT1-1';
+  else if (isP11) defaultFcawClass = 'E81T1-B2';
+  else if (isP22) defaultFcawClass = 'E91T1-B3';
+  else if (isP5) defaultFcawClass = 'E81T1-B6';
+  else if (isP91) defaultFcawClass = 'E91T1-B9';
+  else if (isNickelAlloy) defaultFcawClass = 'ENiCrFe3T1-1';
 
   return {
     isStainless,
     isNickelAlloy,
     isDuplex,
+    isSuperDuplex,
     isP11,
+    isP22,
+    isP5,
     isP9,
+    isP91,
     isLowTemp,
+    isPipeline,
     defaultTigClass,
     defaultSmawClass,
     defaultGmawClass,
@@ -268,15 +367,25 @@ export function getProcessTravelSpeed(
     isDuplex = false,
     isNickelAlloy = false,
     isP9 = false,
+    isP91 = false,
     isP11 = false,
+    isP22 = false,
+    isP5 = false,
     isCapPass = false,
   } = {}
 ) {
   const speedMult = posSpeedMult * effectiveDirectionMult;
 
   if (proc === 'GTAW') {
-    // High-alloy / viscous weld pools (Stainless, Duplex, Inconel, P9, thick P11) run slower controlled TIG
-    const isSlowAlloy = isStainless || isDuplex || isNickelAlloy || isP9 || (isP11 && t >= 15.0);
+    // High-alloy / viscous weld pools (Stainless, Duplex, Inconel, P5/P9/P91, thick P11/P22) run slower controlled TIG
+    const isSlowAlloy =
+      isStainless ||
+      isDuplex ||
+      isNickelAlloy ||
+      isP5 ||
+      isP9 ||
+      isP91 ||
+      ((isP11 || isP22) && t >= 15.0);
     if (isPipe) {
       const rootSpeed = isSlowAlloy ? 37.5 : 85.0;
       const fillSpeed = isSlowAlloy ? 88.0 : 120.0;

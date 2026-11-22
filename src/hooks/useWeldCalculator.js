@@ -136,14 +136,20 @@ export function useWeldCalculator() {
         mat.p_no === '8' ||
         mat.p_no === '10H' ||
         mat.p_no === '5B' ||
+        mat.p_no === '15E' ||
         mat.p_no === '43' ||
+        mat.p_no === '45' ||
         mat.material_group.includes('Stainless') ||
         mat.material_group.includes('Duplex') ||
         mat.material_group.includes('Nickel');
 
       setRequiresBackingGas(isCorrosionResistant);
 
-      if (mat.material_group.includes('Stainless') || mat.material_group.includes('Duplex')) {
+      if (
+        mat.material_group.includes('Stainless') ||
+        mat.material_group.includes('Duplex') ||
+        mat.material_group.includes('Nickel')
+      ) {
         if (parseFloat(smawElectrodeDiaMm) <= 2.50) {
           setSmawLengthMm('300');
         } else {

@@ -2,12 +2,13 @@
  * Welding Consumable Calculator (WCC)
  * Common UI Component: FluentSelect
  * Windows 11 Pro Fluent Theme-Aware Select / ComboBox
- * - Mobile (< 640px): Portaled Theme-Aware Fluent Bottom Sheet (escapes backdrop-filter cards)
- * - Desktop (>= 640px): In-Place Windows 11 Fluent ComboBox Dropdown
+ * - Mobile (< 640px): Portaled Theme-Aware Fluent Bottom Sheet
+ * - Desktop (>= 640px): Portaled In-Place Windows 11 Fluent ComboBox Dropdown
+ *   (Escapes backdrop-filter card stacking contexts so dropdowns never clip behind sibling cards)
  * Mobile-First & Pure JavaScript (.js only)
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../../i18n.js';
 import { ChevronDown, Check, X } from 'lucide-react';
@@ -24,30 +25,69 @@ export default function FluentSelect({
 }) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState(null);
+
   const containerRef = useRef(null);
+  const triggerRef = useRef(null);
+  const desktopDropdownRef = useRef(null);
   const mobileSheetRef = useRef(null);
 
   const selectedOption = options.find(
     (opt) => String(opt.value) === String(value)
   );
 
-  // Close on outside click/touch, Escape key, and lock scroll on Mobile Bottom Sheet
+  const updateDesktopPosition = useCallback(() => {
+    if (!triggerRef.current || window.innerWidth < 640) return;
+
+    const rect = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUpward = spaceBelow < 220 && spaceAbove > spaceBelow;
+
+    const nextStyle = {
+      position: 'fixed',
+      minWidth: `${rect.width}px`,
+      maxWidth: 'min(92vw, 26rem)',
+      zIndex: 70,
+    };
+
+    if (openUpward) {
+      nextStyle.bottom = `${Math.max(8, window.innerHeight - rect.top + 4)}px`;
+    } else {
+      nextStyle.top = `${rect.bottom + 4}px`;
+    }
+
+    if (align === 'right') {
+      nextStyle.right = `${Math.max(8, window.innerWidth - rect.right)}px`;
+    } else {
+      nextStyle.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8))}px`;
+    }
+
+    setDropdownStyle(nextStyle);
+  }, [align]);
+
+  // Position tracking, outside click/touch, Escape key & mobile scroll lock
   useEffect(() => {
     if (!isOpen) return;
 
     const isMobileViewport = window.innerWidth < 640;
     const prevOverflow = document.body.style.overflow;
+
     if (isMobileViewport) {
       document.body.style.overflow = 'hidden';
+    } else {
+      updateDesktopPosition();
     }
 
     const handleOutside = (e) => {
       const inContainer =
         containerRef.current && containerRef.current.contains(e.target);
+      const inDesktopDropdown =
+        desktopDropdownRef.current && desktopDropdownRef.current.contains(e.target);
       const inMobileSheet =
         mobileSheetRef.current && mobileSheetRef.current.contains(e.target);
 
-      if (!inContainer && !inMobileSheet) {
+      if (!inContainer && !inDesktopDropdown && !inMobileSheet) {
         setIsOpen(false);
       }
     };
@@ -58,9 +98,17 @@ export default function FluentSelect({
       }
     };
 
+    const handleReposition = () => {
+      if (window.innerWidth >= 640) {
+        updateDesktopPosition();
+      }
+    };
+
     document.addEventListener('mousedown', handleOutside);
     document.addEventListener('touchstart', handleOutside);
     document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleReposition);
+    window.addEventListener('scroll', handleReposition, true);
 
     return () => {
       if (isMobileViewport) {
@@ -69,8 +117,10 @@ export default function FluentSelect({
       document.removeEventListener('mousedown', handleOutside);
       document.removeEventListener('touchstart', handleOutside);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleReposition);
+      window.removeEventListener('scroll', handleReposition, true);
     };
-  }, [isOpen]);
+  }, [isOpen, updateDesktopPosition]);
 
   const handleSelectOption = (opt) => {
     if (opt.disabled) return;
@@ -119,6 +169,7 @@ export default function FluentSelect({
     <div ref={containerRef} className="relative w-full">
       {/* Fluent Trigger Button */}
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen((prev) => !prev)}
@@ -140,40 +191,38 @@ export default function FluentSelect({
         />
       </button>
 
-      {/* Desktop (>= 640px): In-Place Windows 11 Fluent ComboBox Dropdown */}
-      {isOpen && (
-        <div
-          role="listbox"
-          aria-label={label || placeholder}
-          className={`
-            hidden sm:flex sm:flex-col
-            sm:absolute sm:top-full sm:mt-1 sm:z-50
-            ${align === 'right' ? 'sm:right-0' : 'sm:left-0'}
-            sm:min-w-full sm:w-max sm:max-w-[min(90vw,22rem)] sm:max-h-64
-            sm:rounded-fluent-lg sm:bg-white sm:dark:bg-[#262626]
-            sm:border sm:border-black/[0.1] sm:dark:border-white/[0.12]
-            sm:shadow-fluent-flyout overflow-hidden
-          `}
-        >
-          <div className="overflow-y-auto p-1 space-y-0.5">
-            {renderOptionsList()}
-          </div>
-        </div>
-      )}
-
-      {/* Mobile (< 640px): Portaled Theme-Aware Fluent Bottom Sheet */}
+      {/* Portaled Dropdown (Desktop) & Bottom Sheet (Mobile) */}
       {isOpen &&
         typeof document !== 'undefined' &&
         createPortal(
           <>
-            {/* Mobile Backdrop */}
+            {/* Desktop (>= 640px): Portaled Windows 11 Fluent ComboBox Dropdown */}
+            {dropdownStyle && (
+              <div
+                ref={desktopDropdownRef}
+                role="listbox"
+                aria-label={label || placeholder}
+                style={dropdownStyle}
+                className="
+                  hidden sm:flex sm:flex-col max-h-64
+                  rounded-fluent-lg bg-white dark:bg-[#262626]
+                  border border-black/[0.1] dark:border-white/[0.12]
+                  shadow-fluent-flyout overflow-hidden
+                "
+              >
+                <div className="overflow-y-auto p-1 space-y-0.5">
+                  {renderOptionsList()}
+                </div>
+              </div>
+            )}
+
+            {/* Mobile (< 640px): Portaled Theme-Aware Fluent Bottom Sheet */}
             <div
               onClick={() => setIsOpen(false)}
               className="fixed inset-0 z-[60] bg-black/45 backdrop-blur-[2px] sm:hidden animate-in fade-in duration-150"
               aria-hidden="true"
             />
 
-            {/* Mobile Bottom Sheet */}
             <div
               ref={mobileSheetRef}
               role="listbox"
