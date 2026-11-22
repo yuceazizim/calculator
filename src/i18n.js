@@ -8,6 +8,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import enTranslations from './locales/en.json';
 import trTranslations from './locales/tr.json';
+import ruTranslations from './locales/ru.json';
 
 const unwrapDict = (imported) => {
   if (!imported) return {};
@@ -18,6 +19,7 @@ const unwrapDict = (imported) => {
 export const AVAILABLE_LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'tr', label: 'Türkçe' },
+  { code: 'ru', label: 'Русский' },
 ];
 
 const SUPPORTED_LANGUAGES = AVAILABLE_LANGUAGES.map((l) => l.code);
@@ -25,6 +27,7 @@ const SUPPORTED_LANGUAGES = AVAILABLE_LANGUAGES.map((l) => l.code);
 const dictionaries = {
   en: unwrapDict(enTranslations),
   tr: unwrapDict(trTranslations),
+  ru: unwrapDict(ruTranslations),
 };
 
 const I18nContext = createContext(null);

@@ -4,7 +4,7 @@
  * Windows 11 Fluent Joint Configuration, Live Cross-Section SVG Visualizer,
  * Custom Theme-Aware Pipe Picker Modal (Mobile Edge-to-Edge) & Batch Joint Quantity Multiplier
  * Supports: Single-V Butt, Double-V (X-Joint), Socket & Fillet Welds for Pipes and Plates
- * Mobile-First: Edge-to-Edge Flush Layout (rounded-none on mobile, rounded on desktop)
+ * Mobile-First: Edge-to-Edge Flush Layout & Multi-Language Safe Wrapping (leading-tight)
  * Standards: ASME B16.25 • ASME B16.11 • AWS D1.1 • EN ISO 9692-1
  * Pure JavaScript (.js only)
  */
@@ -407,7 +407,7 @@ export default function JointConfigCard({
           </div>
         </div>
 
-        {/* 2. Primary Workpiece Selector: Pipe vs Plate */}
+        {/* 2. Primary Workpiece Selector: Pipe vs Plate (Multi-Language Safe Wrapping) */}
         <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mb-3">
           <button
             type="button"
@@ -417,7 +417,7 @@ export default function JointConfigCard({
                 setWeldGeometry('butt');
               }
             }}
-            className={`py-1.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-fluent border transition-all ${
+            className={`min-h-[40px] py-1.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-fluent border transition-all flex items-center justify-center text-center leading-tight whitespace-normal break-words ${
               jointType === 'pipe'
                 ? 'bg-fluent-accent text-white border-fluent-accent shadow-sm'
                 : 'bg-white/60 dark:bg-[#333]/60 text-slate-700 dark:text-slate-300 border-black/[0.08] dark:border-white/[0.08] hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
@@ -431,7 +431,7 @@ export default function JointConfigCard({
               setJointType('plate');
               if (weldGeometry === 'socket') setWeldGeometry('butt');
             }}
-            className={`py-1.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-fluent border transition-all ${
+            className={`min-h-[40px] py-1.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-fluent border transition-all flex items-center justify-center text-center leading-tight whitespace-normal break-words ${
               jointType === 'plate'
                 ? 'bg-fluent-accent text-white border-fluent-accent shadow-sm'
                 : 'bg-white/60 dark:bg-[#333]/60 text-slate-700 dark:text-slate-300 border-black/[0.08] dark:border-white/[0.08] hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
@@ -441,7 +441,7 @@ export default function JointConfigCard({
           </button>
         </div>
 
-        {/* 3. Weld Geometry Segmented Control */}
+        {/* 3. Weld Geometry Segmented Control (Multi-Language Safe Wrapping) */}
         <div className="mb-3 sm:mb-4">
           <label className="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
             {t('joint.groove_type', 'Weld Joint Geometry')}
@@ -452,7 +452,7 @@ export default function JointConfigCard({
               <button
                 type="button"
                 onClick={() => setWeldGeometry('butt')}
-                className={`py-1.5 px-1.5 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all text-center truncate ${
+                className={`min-h-[36px] py-1.5 px-2 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all flex items-center justify-center text-center leading-tight whitespace-normal break-words ${
                   weldGeometry === 'butt'
                     ? 'bg-white dark:bg-[#383838] text-fluent-accent dark:text-fluent-accent-dark shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -463,7 +463,7 @@ export default function JointConfigCard({
               <button
                 type="button"
                 onClick={() => setWeldGeometry('double_v')}
-                className={`py-1.5 px-1.5 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all text-center truncate ${
+                className={`min-h-[36px] py-1.5 px-2 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all flex items-center justify-center text-center leading-tight whitespace-normal break-words ${
                   weldGeometry === 'double_v'
                     ? 'bg-white dark:bg-[#383838] text-fluent-accent dark:text-fluent-accent-dark shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -474,7 +474,7 @@ export default function JointConfigCard({
               <button
                 type="button"
                 onClick={() => setWeldGeometry('socket')}
-                className={`py-1.5 px-1.5 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all text-center truncate ${
+                className={`min-h-[36px] py-1.5 px-2 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all flex items-center justify-center text-center leading-tight whitespace-normal break-words ${
                   weldGeometry === 'socket'
                     ? 'bg-white dark:bg-[#383838] text-fluent-accent dark:text-fluent-accent-dark shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -485,7 +485,7 @@ export default function JointConfigCard({
               <button
                 type="button"
                 onClick={() => setWeldGeometry('fillet')}
-                className={`py-1.5 px-1.5 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all text-center truncate ${
+                className={`min-h-[36px] py-1.5 px-2 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all flex items-center justify-center text-center leading-tight whitespace-normal break-words ${
                   weldGeometry === 'fillet'
                     ? 'bg-white dark:bg-[#383838] text-fluent-accent dark:text-fluent-accent-dark shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -499,7 +499,7 @@ export default function JointConfigCard({
               <button
                 type="button"
                 onClick={() => setWeldGeometry('butt')}
-                className={`py-1.5 px-1.5 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all text-center truncate ${
+                className={`min-h-[36px] py-1.5 px-2 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all flex items-center justify-center text-center leading-tight whitespace-normal break-words ${
                   weldGeometry === 'butt'
                     ? 'bg-white dark:bg-[#383838] text-fluent-accent dark:text-fluent-accent-dark shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -510,7 +510,7 @@ export default function JointConfigCard({
               <button
                 type="button"
                 onClick={() => setWeldGeometry('double_v')}
-                className={`py-1.5 px-1.5 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all text-center truncate ${
+                className={`min-h-[36px] py-1.5 px-2 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all flex items-center justify-center text-center leading-tight whitespace-normal break-words ${
                   weldGeometry === 'double_v'
                     ? 'bg-white dark:bg-[#383838] text-fluent-accent dark:text-fluent-accent-dark shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -521,7 +521,7 @@ export default function JointConfigCard({
               <button
                 type="button"
                 onClick={() => setWeldGeometry('fillet')}
-                className={`py-1.5 px-1.5 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all text-center truncate ${
+                className={`min-h-[36px] py-1.5 px-2 text-[11px] sm:text-xs font-semibold rounded-fluent transition-all flex items-center justify-center text-center leading-tight whitespace-normal break-words ${
                   weldGeometry === 'fillet'
                     ? 'bg-white dark:bg-[#383838] text-fluent-accent dark:text-fluent-accent-dark shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -535,13 +535,13 @@ export default function JointConfigCard({
 
         {/* 3B. Live Dynamic Cross-Section SVG Visualizer */}
         <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 rounded-fluent bg-slate-50/90 dark:bg-[#1f1f1f]/80 border border-black/[0.06] dark:border-white/[0.08]">
-          <div className="flex items-center justify-between gap-2 mb-1.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap mb-1.5">
             <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-300">
               <Eye className="w-3.5 h-3.5 text-fluent-accent flex-shrink-0" />
               <span>{t('joint.preview_title', 'Live Cross-Section Schematic')}</span>
             </div>
             {weldGeometry === 'double_v' && (
-              <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 truncate">
+              <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 leading-tight">
                 {t('joint.double_v_badge', 'X-Joint (~40-50% less filler)')}
               </span>
             )}
@@ -553,7 +553,7 @@ export default function JointConfigCard({
         {jointType === 'pipe' ? (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
             <div>
-              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                 {t('joint.pipe_select', 'Standard Pipe (ASME B36.10M)')}
               </label>
               <button
@@ -573,7 +573,7 @@ export default function JointConfigCard({
             </div>
 
             <div>
-              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                 {t('joint.outside_diameter', 'Outside Diameter (OD)')} ({t('units.mm', 'mm')})
               </label>
               <input
@@ -587,7 +587,7 @@ export default function JointConfigCard({
             </div>
 
             <div>
-              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                 {t('joint.wall_thickness', 'Wall Thickness (t)')} ({t('units.mm', 'mm')})
               </label>
               <input
@@ -603,7 +603,7 @@ export default function JointConfigCard({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
             <div>
-              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                 {t('joint.weld_length', 'Seam Length (L)')} ({t('units.mm', 'mm')})
               </label>
               <input
@@ -617,7 +617,7 @@ export default function JointConfigCard({
             </div>
 
             <div>
-              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                 {t('joint.wall_thickness', 'Wall Thickness (t)')} ({t('units.mm', 'mm')})
               </label>
               <input
@@ -655,9 +655,9 @@ export default function JointConfigCard({
               </div>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 items-end">
               <div>
-                <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 truncate">
+                <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                   {t('joint.bevel_angle', 'Bevel Angle (θ)')}
                 </label>
                 <input
@@ -671,7 +671,7 @@ export default function JointConfigCard({
               </div>
 
               <div>
-                <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 truncate">
+                <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                   {t('joint.root_gap', 'Root Gap (g)')} ({t('units.mm', 'mm')})
                 </label>
                 <input
@@ -685,7 +685,7 @@ export default function JointConfigCard({
               </div>
 
               <div>
-                <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 truncate">
+                <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                   {t('joint.root_face', 'Root Face (f)')} ({t('units.mm', 'mm')})
                 </label>
                 <input
@@ -699,7 +699,7 @@ export default function JointConfigCard({
               </div>
 
               <div>
-                <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 truncate">
+                <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 leading-tight">
                   {t('joint.cap_height', 'Cap Height (c)')} ({t('units.mm', 'mm')})
                 </label>
                 <input
